@@ -40,7 +40,7 @@ CombatActionExecutor
     |
     +--> CombatActionModules
              |
-             +--> HitModule (planned)
+             +--> HitModule (automatically created when HitInstances are present)
              +--> MovementModule
              +--> DefenseModule
 ```
@@ -98,6 +98,7 @@ Modules that use phase ranges must continue to refer to these three Action phase
 - `end_time`
 - `damage`
 - `hitboxes: Array[HitboxData]`
+- `collision_mask` (runtime Area2D collision mask)
 - `hitstop_enabled`
 - `attacker_time_freeze_duration`
 - `target_time_freeze_duration`
@@ -121,7 +122,7 @@ Exact property names/types must follow the actual script and Godot's supported S
 
 ### 6.3 Runtime collision structure
 
-Chosen structure:
+Implemented runtime structure:
 
 ```text
 Actor
@@ -144,7 +145,7 @@ For each HitInstance:
 
 ## 7. HitModule and hit resolution
 
-Planned `HitModule` is a `CombatActionModule` Resource responsible for:
+`HitModule` is automatically created by `CombatActionExecutor` when an Action has HitInstances. It is responsible for:
 - Managing HitInstance schedules during Active.
 - Building/configuring runtime Area2D and CollisionShape2D nodes.
 - Enabling/disabling all hitboxes for each instance.
@@ -166,7 +167,7 @@ Do not collapse `HitManager` into `HitModule`.
 
 `CombatTimeManager` remains the single authority for time-freeze execution.
 
-The old `HitstopModule` submits attacker and target freeze requests. Existing behavior automatically adds one frame (`1/60` second) to the target duration when the attacker duration is adjusted. The migration to `HitModule` should preserve this behavior unless explicitly changed after discussion.
+Hitstop configuration belongs to `HitInstanceData`, and `HitModule` submits attacker and target freeze requests to `CombatTimeManager`. The existing behavior that adds one frame (`1/60` second) to target duration when attacker duration is adjusted is preserved. The deprecated `HitstopModule` is removed after its action-resource references are migrated.
 
 TimeFreeze source identity is important:
 - One active freeze record per Actor.
@@ -210,14 +211,13 @@ Preserve source IDs and existing `trigger_time_slow_on_success` behavior. Do not
 
 `CombatDebugOverlay` is the central place for combat debugging. New features should integrate with it rather than adding scattered debug drawing.
 
-Desired/ongoing debug information includes:
-- Startup / Active / Recovery timeline and current phase.
-- HitInstance active windows.
-- Hitbox visualization and ranges.
-- Damage numbers.
-- Movement and velocity state where useful.
+The HitInstance migration provides runtime debug data through the Action Context:
+- Active HitInstance count and total count.
+- Per-instance active state and hit-target count.
+- References to the runtime Area2D nodes, allowing the overlay to draw their actual CollisionShape2D geometry.
+- HitInstance time windows displayed beneath the Action Active timeline.
 
-The overlay should query the existing Actor debug interface rather than hard-coding assumptions about unrelated nodes.
+The overlay should query the existing Executor debug interface rather than hard-coding assumptions about legacy scene nodes.
 
 ## 12. Future editor direction (not current implementation scope)
 
@@ -231,7 +231,7 @@ AnimationPlayer remains responsible for animation keyframes. CombatLab adds comb
 
 Character animation is expected to be in-place while programmatic systems control world position. This keeps animation and movement trajectory independently inspectable.
 
-Do not start an EditorPlugin or visual Hitbox editor as part of the current migration.
+The visual Hit Editor now exists and is considered sufficient for the current workflow. Do not expand it while the HitInstance runtime migration is the active priority.
 
 ## 13. Naming and code conventions
 
