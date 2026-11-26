@@ -122,6 +122,9 @@ func _create_floating_instance_list() -> void:
 
 	tree = Tree.new()
 	tree.hide_root = true
+	var tree_background := StyleBoxFlat.new()
+	tree_background.bg_color = Color(0.055, 0.065, 0.085, 0.0)
+	tree.add_theme_stylebox_override("panel", tree_background)
 	tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	tree.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tree.custom_minimum_size.y = 150
