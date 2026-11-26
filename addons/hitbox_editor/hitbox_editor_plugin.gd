@@ -36,5 +36,7 @@ func _handles(object: Object) -> bool:
 	return object is CombatActionData
 
 func _edit(object: Object) -> void:
-	if is_instance_valid(main_panel):
-		main_panel.set_action_data(object if object is CombatActionData else null)
+	# Inspector selection may temporarily move to another object when the
+	# user clicks the editor workspace. Keep the last Action pinned.
+	if object is CombatActionData and is_instance_valid(main_panel):
+		main_panel.set_action_data(object)
