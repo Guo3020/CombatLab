@@ -123,6 +123,31 @@ func set_action_data(value: CombatActionData) -> void:
 	_refresh_tree()
 	canvas.set_action_data(value)
 	timeline.set_action_data(value)
+	_connect_resource_changes()
+	_update_status()
+
+func _connect_resource_changes() -> void:
+	if action_data == null:
+		return
+	if not action_data.changed.is_connected(_on_action_resource_changed):
+		action_data.changed.connect(_on_action_resource_changed)
+	for instance in action_data.hit_instances:
+		if instance == null:
+			continue
+		if not instance.changed.is_connected(_on_action_resource_changed):
+			instance.changed.connect(_on_action_resource_changed)
+		for hitbox in instance.hitboxes:
+			if hitbox != null and not hitbox.changed.is_connected(_on_action_resource_changed):
+				hitbox.changed.connect(_on_action_resource_changed)
+
+func _on_action_resource_changed() -> void:
+	if is_instance_valid(canvas):
+		canvas.queue_redraw()
+	if is_instance_valid(timeline):
+		timeline.queue_redraw()
+	var signature := _build_tree_signature()
+	if signature != last_tree_signature:
+		_refresh_tree()
 	_update_status()
 
 func _build_tree_signature() -> String:
