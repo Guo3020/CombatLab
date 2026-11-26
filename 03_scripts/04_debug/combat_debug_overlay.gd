@@ -237,7 +237,11 @@ func _draw_timeline() -> void:
 	)
 
 	# HitInstance 时间窗口：相对于 Active 起点显示。
-	if executor != null and executor.is_action_running():
+	if (
+		executor != null
+		and executor.is_action_running()
+		and executor.current_context.action_data.hit_module_enabled
+	):
 		var context: CombatActionContext = executor.current_context
 		var active_duration: float = context.action_data.active
 		var active_start_x: float = start_x + startup_width
