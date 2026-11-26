@@ -161,7 +161,8 @@ The exact fields and shape construction must be checked against the actual `hitb
 4. Verify HitInstance start/end timing, including boundaries that fall between frame timestamps.
 5. Verify per-instance target deduplication, later-instance re-hits, Hitstop, and Action cancellation cleanup.
 6. Verify the DebugOverlay displays actual runtime Hitboxes and HitInstance timing for both Player and Enemy.
-7. Only after these checks pass, mark the migration complete and continue to the next combat-system feature.
+7. In Hit Editor, test Hitbox layer ordering / topmost selection, Undo/Redo, per-Hitbox color variation, and independent HitInstance / Hitbox visibility toggles.
+8. Only after these checks pass, mark the migration and editor updates complete and continue to the next combat-system feature.
 
 ## 7. Collaboration constraints
 
