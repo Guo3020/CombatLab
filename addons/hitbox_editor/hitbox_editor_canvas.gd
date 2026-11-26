@@ -284,7 +284,7 @@ func _apply_drag(mouse: Vector2) -> void:
 		DragMode.MOVE:
 			drag_resource.offset = drag_start_offset + (mouse - drag_start_mouse) / view_scale
 		DragMode.RESIZE_RECT:
-			var local_mouse := _to_hitbox_local(mouse, drag_resource)
+			var local_mouse := _to_hitbox_local_at(mouse, drag_start_offset, drag_resource.rotation_degrees)
 			var new_center := (drag_anchor + local_mouse) * 0.5
 			var new_size := (local_mouse - drag_anchor).abs()
 			drag_resource.rectangle_size = Vector2(maxf(new_size.x, 2.0), maxf(new_size.y, 2.0))
@@ -301,8 +301,11 @@ func _apply_drag(mouse: Vector2) -> void:
 	drag_resource.emit_changed()
 
 func _to_hitbox_local(mouse: Vector2, hitbox: HitboxData) -> Vector2:
-	var center := actor_origin + hitbox.offset * view_scale
-	return ((mouse - center) / view_scale).rotated(-deg_to_rad(hitbox.rotation_degrees))
+	return _to_hitbox_local_at(mouse, hitbox.offset, hitbox.rotation_degrees)
+
+func _to_hitbox_local_at(mouse: Vector2, offset: Vector2, rotation_degrees: float) -> Vector2:
+	var center := actor_origin + offset * view_scale
+	return ((mouse - center) / view_scale).rotated(-deg_to_rad(rotation_degrees))
 
 func _pick_handle(mouse: Vector2) -> DragMode:
 	if selected_hitbox == null:
@@ -382,34 +385,26 @@ func _finish_edit() -> void:
 		queue_redraw()
 		return
 
-	if undo_redo != null:
-		var changed := false
+	var changes: Array[Dictionary] = []
+	if not final_offset.is_equal_approx(drag_start_offset):
+		changes.append({"property": "offset", "after": final_offset, "before": drag_start_offset})
+	if resource.shape_type == HitboxData.ShapeType.RECTANGLE and not final_size.is_equal_approx(drag_start_size):
+		changes.append({"property": "rectangle_size", "after": final_size, "before": drag_start_size})
+	elif resource.shape_type == HitboxData.ShapeType.CIRCLE and not is_equal_approx(final_radius, drag_start_radius):
+		changes.append({"property": "circle_radius", "after": final_radius, "before": drag_start_radius})
+	elif resource.shape_type == HitboxData.ShapeType.CAPSULE:
+		if not is_equal_approx(final_radius, drag_start_radius):
+			changes.append({"property": "capsule_radius", "after": final_radius, "before": drag_start_radius})
+		if not is_equal_approx(final_height, drag_start_height):
+			changes.append({"property": "capsule_height", "after": final_height, "before": drag_start_height})
+
+	if undo_redo != null and not changes.is_empty():
 		undo_redo.create_action("编辑判定框")
-		if not final_offset.is_equal_approx(drag_start_offset):
-			undo_redo.add_do_property(resource, "offset", final_offset)
-			undo_redo.add_undo_property(resource, "offset", drag_start_offset)
-			changed = true
-		if resource.shape_type == HitboxData.ShapeType.RECTANGLE and not final_size.is_equal_approx(drag_start_size):
-			undo_redo.add_do_property(resource, "rectangle_size", final_size)
-			undo_redo.add_undo_property(resource, "rectangle_size", drag_start_size)
-			changed = true
-		elif resource.shape_type == HitboxData.ShapeType.CIRCLE and not is_equal_approx(final_radius, drag_start_radius):
-			undo_redo.add_do_property(resource, "circle_radius", final_radius)
-			undo_redo.add_undo_property(resource, "circle_radius", drag_start_radius)
-			changed = true
-		elif resource.shape_type == HitboxData.ShapeType.CAPSULE:
-			if not is_equal_approx(final_radius, drag_start_radius):
-				undo_redo.add_do_property(resource, "capsule_radius", final_radius)
-				undo_redo.add_undo_property(resource, "capsule_radius", drag_start_radius)
-				changed = true
-			if not is_equal_approx(final_height, drag_start_height):
-				undo_redo.add_do_property(resource, "capsule_height", final_height)
-				undo_redo.add_undo_property(resource, "capsule_height", drag_start_height)
-				changed = true
-		if changed:
-			undo_redo.commit_action()
-		else:
-			undo_redo.commit_action()
+		for change in changes:
+			undo_redo.add_do_property(resource, change.property, change.after)
+			undo_redo.add_undo_property(resource, change.property, change.before)
+		undo_redo.commit_action()
+
 	resource.emit_changed()
 	queue_redraw()
 
