@@ -19,4 +19,5 @@ startup = 1.26
 active = 1.16
 recovery = 0.0
 input_window = 0.6
+modules = Array[ExtResource("1_tfeyi")]([])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"
