@@ -410,7 +410,8 @@ func _on_tree_gui_input(event: InputEvent) -> void:
 	context_menu.set_item_disabled(1, current_index <= 0)
 	context_menu.set_item_disabled(2, current_index >= context_instance.hitboxes.size() - 1)
 	context_menu.set_item_disabled(3, current_index <= 0)
-	context_menu.popup(Rect2i(DisplayServer.mouse_get_position(), Vector2i(1, 1)))
+	context_menu.position = Vector2i(tree.get_viewport().get_mouse_position())
+	context_menu.popup()
 	tree.accept_event()
 
 func _on_context_menu_id_pressed(id: int) -> void:
