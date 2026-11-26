@@ -11,11 +11,22 @@ const DEFAULT_PANEL_WIDTH := 250.0
 const MIN_PANEL_WIDTH := 210.0
 const MAX_PANEL_WIDTH := 560.0
 const RESIZE_EDGE_WIDTH := 8.0
+const EYE_BUTTON_ID := 1
+const MOVE_UP := 0
+const MOVE_DOWN := 1
+const MOVE_TO_TOP := 2
+const MOVE_TO_BOTTOM := 3
 
 var action_data: CombatActionData
 var selected_instance: HitInstanceData
 var selected_hitbox: HitboxData
 var tree: Tree
+var context_menu: PopupMenu
+var context_hitbox: HitboxData
+var context_instance: HitInstanceData
+var hidden_instances: Dictionary = {}
+var hidden_hitboxes: Dictionary = {}
+var undo_redo: EditorUndoRedoManager
 var tree_panel: PanelContainer
 var panel_header: Control
 var resize_grip: Control
@@ -130,7 +141,13 @@ func _create_floating_instance_list() -> void:
 	tree.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tree.custom_minimum_size.y = 150
 	tree.item_selected.connect(_on_tree_selected)
+	tree.button_clicked.connect(_on_tree_button_clicked)
+	tree.gui_input.connect(_on_tree_gui_input)
 	list_layout.add_child(tree)
+
+	context_menu = PopupMenu.new()
+	tree.add_child(context_menu)
+	context_menu.id_pressed.connect(_on_context_menu_id_pressed)
 
 	resize_grip = Control.new()
 	resize_grip.custom_minimum_size = Vector2(RESIZE_EDGE_WIDTH, 1)
@@ -226,8 +243,9 @@ func _clamp_panel_position(value: Vector2) -> Vector2:
 
 func set_editor_plugin(value: EditorPlugin) -> void:
 	plugin = value
+	undo_redo = plugin.get_undo_redo()
 	if is_instance_valid(canvas):
-		canvas.set_undo_redo(plugin.get_undo_redo())
+		canvas.set_undo_redo(undo_redo)
 
 func set_action_data(value: CombatActionData) -> void:
 	if value == null or action_data == value:
@@ -236,6 +254,8 @@ func set_action_data(value: CombatActionData) -> void:
 	action_data = value
 	selected_instance = null
 	selected_hitbox = null
+	hidden_instances.clear()
+	hidden_hitboxes.clear()
 	last_tree_signature = ""
 	if not is_instance_valid(tree):
 		return
@@ -268,6 +288,10 @@ func _on_action_resource_changed() -> void:
 	var signature := _build_tree_signature()
 	if signature != last_tree_signature:
 		_refresh_tree()
+		if selected_hitbox != null:
+			_select_tree_item(selected_hitbox)
+		elif selected_instance != null:
+			_select_tree_item(selected_instance)
 	_update_status()
 
 func _build_tree_signature() -> String:
@@ -286,8 +310,8 @@ func _build_tree_signature() -> String:
 			if hitbox == null:
 				parts.append("null")
 				continue
-			parts.append("%d:%d:%s:%s:%.3f:%s:%s:%s" % [
-				j, hitbox.shape_type, str(hitbox.offset), str(hitbox.rectangle_size),
+			parts.append("%d:%d:%d:%s:%s:%.3f:%s:%s:%s" % [
+				j, hitbox.get_instance_id(), hitbox.shape_type, str(hitbox.offset), str(hitbox.rectangle_size),
 				hitbox.rotation_degrees, str(hitbox.circle_radius), str(hitbox.capsule_radius),
 				str(hitbox.capsule_height)
 			])
@@ -308,6 +332,10 @@ func _refresh_tree() -> void:
 		var item := tree.create_item(root)
 		item.set_text(0, "命中实例 %02d  [%.2f - %.2f]" % [i + 1, instance.start_time, instance.end_time])
 		item.set_metadata(0, instance)
+		var instance_visible := not hidden_instances.has(instance.get_instance_id())
+		item.add_button(0, _get_visibility_icon(instance_visible), EYE_BUTTON_ID, false, "隐藏命中实例" if instance_visible else "显示命中实例")
+		if not instance_visible:
+			item.set_custom_color(0, Color(0.52, 0.55, 0.6))
 		for j in range(instance.hitboxes.size()):
 			var hitbox: HitboxData = instance.hitboxes[j]
 			if hitbox == null:
@@ -315,7 +343,109 @@ func _refresh_tree() -> void:
 			var child := tree.create_item(item)
 			child.set_text(0, "判定框 %02d  (%s)" % [j + 1, _shape_name(hitbox.shape_type)])
 			child.set_metadata(0, hitbox)
+			var hitbox_visible := not hidden_hitboxes.has(hitbox.get_instance_id())
+			child.add_button(0, _get_visibility_icon(hitbox_visible), EYE_BUTTON_ID, false, "隐藏判定框" if hitbox_visible else "显示判定框")
+			if not hitbox_visible or not instance_visible:
+				child.set_custom_color(0, Color(0.52, 0.55, 0.6))
 	last_tree_signature = _build_tree_signature()
+
+func _get_visibility_icon(visible: bool) -> Texture2D:
+	var theme := EditorInterface.get_editor_theme()
+	if visible:
+		return theme.get_icon("GuiVisibilityVisible", "EditorIcons")
+	return theme.get_icon("GuiVisibilityHidden", "EditorIcons")
+
+func _on_tree_button_clicked(item: TreeItem, _column: int, button_id: int, _mouse_button_index: int) -> void:
+	if button_id != EYE_BUTTON_ID:
+		return
+	var value: Variant = item.get_metadata(0)
+	if value is HitInstanceData:
+		var instance := value as HitInstanceData
+		if hidden_instances.has(instance.get_instance_id()):
+			hidden_instances.erase(instance.get_instance_id())
+		else:
+			hidden_instances[instance.get_instance_id()] = true
+		if hidden_instances.has(instance.get_instance_id()):
+			if selected_instance == instance or (selected_hitbox != null and instance.hitboxes.has(selected_hitbox)):
+				selected_instance = null
+				selected_hitbox = null
+	elif value is HitboxData:
+		var hitbox := value as HitboxData
+		if hidden_hitboxes.has(hitbox.get_instance_id()):
+			hidden_hitboxes.erase(hitbox.get_instance_id())
+		else:
+			hidden_hitboxes[hitbox.get_instance_id()] = true
+		if hidden_hitboxes.has(hitbox.get_instance_id()) and selected_hitbox == hitbox:
+			selected_hitbox = null
+	canvas.set_hidden_resources(hidden_instances, hidden_hitboxes)
+	_sync_selection()
+	_refresh_tree()
+	_update_status()
+
+func _on_tree_gui_input(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton):
+		return
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_RIGHT or not mouse_event.pressed:
+		return
+	var item := tree.get_item_at_position(mouse_event.position)
+	if item == null:
+		return
+	var value: Variant = item.get_metadata(0)
+	if not value is HitboxData:
+		return
+	context_hitbox = value
+	context_instance = _parent_instance(context_hitbox)
+	if context_instance == null:
+		return
+	tree.set_selected(item, 0)
+	context_menu.clear()
+	var current_index := context_instance.hitboxes.find(context_hitbox)
+	context_menu.add_item("上移一层", MOVE_UP)
+	context_menu.add_item("下移一层", MOVE_DOWN)
+	context_menu.add_separator()
+	context_menu.add_item("移至顶层", MOVE_TO_TOP)
+	context_menu.add_item("移至底层", MOVE_TO_BOTTOM)
+	context_menu.set_item_disabled(0, current_index >= context_instance.hitboxes.size() - 1)
+	context_menu.set_item_disabled(1, current_index <= 0)
+	context_menu.set_item_disabled(2, current_index >= context_instance.hitboxes.size() - 1)
+	context_menu.set_item_disabled(3, current_index <= 0)
+	context_menu.popup(Rect2i(DisplayServer.mouse_get_position(), Vector2i(1, 1)))
+	tree.accept_event()
+
+func _on_context_menu_id_pressed(id: int) -> void:
+	if context_instance == null or context_hitbox == null:
+		return
+	var old_order: Array[HitboxData] = context_instance.hitboxes.duplicate()
+	var old_index := old_order.find(context_hitbox)
+	if old_index < 0:
+		return
+	var new_index := old_index
+	match id:
+		MOVE_UP:
+			new_index += 1
+		MOVE_DOWN:
+			new_index -= 1
+		MOVE_TO_TOP:
+			new_index = old_order.size() - 1
+		MOVE_TO_BOTTOM:
+			new_index = 0
+	new_index = clampi(new_index, 0, old_order.size() - 1)
+	if new_index == old_index:
+		return
+	var new_order: Array[HitboxData] = old_order.duplicate()
+	new_order.remove_at(old_index)
+	new_order.insert(new_index, context_hitbox)
+	if undo_redo != null:
+		undo_redo.create_action("调整判定框图层")
+		undo_redo.add_do_property(context_instance, "hitboxes", new_order)
+		undo_redo.add_undo_property(context_instance, "hitboxes", old_order)
+		undo_redo.commit_action()
+	else:
+		context_instance.hitboxes = new_order
+	context_instance.emit_changed()
+	_on_action_resource_changed()
+	_select_tree_item(context_hitbox)
 
 func _on_tree_selected() -> void:
 	var item := tree.get_selected()
