@@ -60,7 +60,7 @@ var damage: float = 10.0
 
 @export var hitstop_enabled: bool = true
 
-# 保留旧 HitstopModule 对攻击者和目标分别启用/关闭的能力。
+# 攻击者和命中目标可以分别启用或关闭局部冻结。
 @export var attacker_time_freeze_enabled: bool = true
 
 @export_range(0.0, 1.0, 0.001)
