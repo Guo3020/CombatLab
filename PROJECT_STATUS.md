@@ -6,7 +6,7 @@
 
 ## 1. Current focus
 
-Complete and validate the HitInstance runtime migration. The visual Hit Editor is now considered sufficient for the current workflow; editor expansion is not the active priority.
+Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a small usability pass (Hitbox stacking order, per-Hitbox colors, and visibility toggles) alongside HitInstance runtime validation.
 
 Current migration branch: `feature/hitinstance-runtime-migration` (pending PR review and Godot validation).
 
@@ -19,6 +19,10 @@ The following changes have been prepared on the migration branch but have **not 
 - The default Player HitInstance mask targets Enemy Layer 3; Enemy Action 01 explicitly targets Player Layer 2.
 - Player1 and EnemyBase now have explicit collision layers/masks: Player Layer 2, Enemy Layer 3, both bodies mask World Layer 1.
 - Hit Editor floating panel resizing is restricted to its right edge; tree row selection remains handled by the Tree control.
+- Hitbox list rows now expose a right-click layer menu (raise, lower, top, bottom); the underlying HitInstance Hitbox array order drives both draw order and click priority.
+- Hitboxes within each HitInstance receive related but slightly varied editor colors.
+- HitInstance and individual Hitbox rows have independent eye-button visibility toggles; hidden Hitboxes are omitted from drawing and picking only, with no runtime collision setting changed.
+- These new Hit Editor controls are committed but have not yet been run in Godot 4.7.2; local validation is still required.
 - One runtime `Area2D` is created per HitInstance, with one `CollisionShape2D` per Hitbox.
 - Hitboxes in one HitInstance share one target-hit record; different HitInstances have independent records.
 - HitInstance windows are evaluated against the current update interval to avoid waiting an additional Executor update after crossing a configured time boundary.
