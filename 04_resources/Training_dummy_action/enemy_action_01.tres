@@ -6,6 +6,7 @@
 
 [sub_resource type="Resource" id="Resource_HitInstance"]
 script = ExtResource("1_htf8t")
+collision_mask = 2
 attacker_time_freeze_duration = 0.6
 target_time_freeze_duration = 0.6166666666666667
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
@@ -14,6 +15,7 @@ metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 script = ExtResource("4_5bglr")
 action_id = &"enemy_combo_01"
 action_name = "怪物连击1"
+hit_module_enabled = true
 hit_instances = Array[ExtResource("1_htf8t")]([SubResource("Resource_HitInstance")])
 startup = 1.26
 active = 1.16
