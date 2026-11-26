@@ -9,6 +9,8 @@ func _enter_tree() -> void:
 	main_panel.set_script(PANEL_SCRIPT)
 	main_panel.name = "HitEditor"
 	main_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	main_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	EditorInterface.get_editor_main_screen().add_child(main_panel)
 	main_panel.set_editor_plugin(self)
 	main_panel.hide()
