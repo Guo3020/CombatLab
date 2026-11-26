@@ -220,7 +220,7 @@ func _write_debug_data(context: RefCounted) -> void:
 	context.runtime_data["hit_instance_runtime"] = debug_instances
 	context.runtime_data["hit_instance_count"] = debug_instances.size()
 	context.runtime_data["hit_instance_active_count"] = active_count
-	context.runtime_data["hit_module_enabled"] = active_count > 0
+	context.runtime_data["hit_module_enabled"] = true
 
 
 # ==================================================
