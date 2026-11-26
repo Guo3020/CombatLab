@@ -1,6 +1,6 @@
 # CombatLab — Architecture
 
-> Last updated: 2026-11-26  
+> Last updated: 2026-11-27  
 > This document records the currently agreed architecture and important constraints. It is a design reference, not a claim that every planned component is already implemented.
 
 ## 1. Project intent
@@ -40,7 +40,7 @@ CombatActionExecutor
     |
     +--> CombatActionModules
              |
-             +--> HitModule (automatically created when HitInstances are present)
+             +--> HitModule (automatically created only when hit_module_enabled is true)
              +--> MovementModule
              +--> DefenseModule
 ```
@@ -87,11 +87,13 @@ Modules that use phase ranges must continue to refer to these three Action phase
 
 ### 6.1 Data model
 
-`CombatActionData` owns an exported array:
+`CombatActionData` owns an explicit `hit_module_enabled` toggle and an exported HitInstance array.
 
-```gdscript
-@export var hit_instances: Array[HitInstanceData] = []
-```
+- `hit_module_enabled` is the only switch that controls whether HitModule runs.
+- `hit_instances` is shown in the Inspector only while the toggle is enabled.
+- Disabling HitModule hides the array but preserves all configured HitInstance data.
+- Re-enabling it restores the previous data. If the array is empty, one default HitInstance is created automatically.
+- The Executor must not infer enablement from whether the array happens to contain data.
 
 `HitInstanceData` is a Resource representing one hit opportunity. Its agreed conceptual data:
 - `start_time`
@@ -137,6 +139,15 @@ Actor
 
 This is conceptual; do not create a fixed scene hierarchy prematurely. The runtime Areas may be direct Actor children or later be organized under a container.
 
+Collision layer convention:
+- Layer 1: World
+- Layer 2: Player
+- Layer 3: Enemy
+- Player CharacterBody2D: Layer 2, Mask 1 (World)
+- Enemy CharacterBody2D: Layer 3, Mask 1 (World)
+- Player HitInstance: Mask 3 (Enemy)
+- Enemy HitInstance: Mask 2 (Player)
+
 For each HitInstance:
 - Keep an independent set of targets already hit.
 - Multiple shapes touching the same target must resolve only once for that instance.
@@ -146,7 +157,7 @@ For each HitInstance:
 
 ## 7. HitModule and hit resolution
 
-`HitModule` is automatically created by `CombatActionExecutor` when an Action has HitInstances. It is responsible for:
+`HitModule` is automatically created by `CombatActionExecutor` only when `CombatActionData.hit_module_enabled` is true. The presence of HitInstance data alone does not enable it. It is responsible for:
 - Managing HitInstance schedules during Active.
 - Building/configuring runtime Area2D and CollisionShape2D nodes.
 - Enabling/disabling all hitboxes for each instance.
