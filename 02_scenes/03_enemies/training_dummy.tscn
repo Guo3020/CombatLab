@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://cbhy42clvjrkr"]
+
+[ext_resource type="PackedScene" uid="uid://xbdnmf07sbsw" path="res://02_scenes/03_enemies/enemy_base.tscn" id="1_1r231"]
+[ext_resource type="Script" uid="uid://b51410lfti82f" path="res://03_scripts/03_enemies/training_dummy.gd" id="2_46buu"]
+[ext_resource type="Resource" uid="uid://6ekbwkfkji05" path="res://04_resources/Training_dummy_action/hit_reaction_01.tres" id="3_tslcj"]
+[ext_resource type="Script" uid="uid://bcj1t4xbmn3t4" path="res://03_scripts/03_enemies/enemy_attack_combo_entry.gd" id="3_ybter"]
+[ext_resource type="Resource" uid="uid://1svfkvdc8m8k" path="res://04_resources/Training_dummy_action/enemy_combo_01.tres" id="4_ybter"]
+
+[sub_resource type="Resource" id="Resource_v0aqv"]
+script = ExtResource("3_ybter")
+combo_data = ExtResource("4_ybter")
+metadata/_custom_type_script = "uid://bcj1t4xbmn3t4"
+
+[node name="training_dummy" unique_id=1045941600 instance=ExtResource("1_1r231")]
+script = ExtResource("2_46buu")
+hit_reaction_action = ExtResource("3_tslcj")
+
+[node name="CollisionShape2D" parent="." index="0" unique_id=2052551920]
+scale = Vector2(0.5, 0.5)
+
+[node name="Polygon2D" parent="." index="2" unique_id=915970745]
+scale = Vector2(0.5, 0.5)
+polygon = PackedVector2Array(-40, -64, -40, -1.1519775, -40, 64, 40, 64, 40, -64)
+
+[node name="AIController" parent="." index="5" unique_id=629086169]
+attack_cooldown = 9.0
+attack_combos = Array[ExtResource("3_ybter")]([SubResource("Resource_v0aqv")])

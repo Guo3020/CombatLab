@@ -1,0 +1,58 @@
+[gd_scene format=3 uid="uid://bosp20ghpiyip"]
+
+[ext_resource type="Script" uid="uid://dgiti7mmaoijn" path="res://03_scripts/02_player/characters/player1.gd" id="1_lxgi7"]
+[ext_resource type="Script" uid="uid://cy2d0guo72f44" path="res://03_scripts/01_combat/executor/combat_action_executor.gd" id="2_bosoa"]
+[ext_resource type="Script" uid="uid://o2ph3ikhg2ei" path="res://03_scripts/01_combat/executor/combat_combo_executor.gd" id="3_6r464"]
+[ext_resource type="Resource" uid="uid://kkfh38m5qw7y" path="res://04_resources/player1_action/sword_combo.tres" id="4_ed1yj"]
+[ext_resource type="Script" uid="uid://ciwrykrdd8api" path="res://03_scripts/01_combat/system/combat_energy.gd" id="5_jxak6"]
+[ext_resource type="Script" uid="uid://drrl5l7ghex4x" path="res://03_scripts/01_combat/system/skill_selector.gd" id="6_3veiq"]
+[ext_resource type="Resource" uid="uid://cblea1uo8n8cu" path="res://04_resources/player1_action/test_normal_skill_combo.tres" id="7_dm8t1"]
+[ext_resource type="Resource" uid="uid://yg2y5iw7jdo" path="res://04_resources/player1_action/test_special_skill_combo.tres" id="8_3u1yq"]
+[ext_resource type="Script" uid="uid://qmwr0q8t5je5" path="res://03_scripts/01_combat/system/defense_controller.gd" id="9_dm8t1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g1ohs"]
+size = Vector2(32, 64)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r8brs"]
+size = Vector2(79.5, 40)
+
+[node name="player1" type="CharacterBody2D" unique_id=870416064 groups=["player"]]
+script = ExtResource("1_lxgi7")
+max_health = 1000.0
+dash_max_charges = 3
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1322898421]
+shape = SubResource("RectangleShape2D_g1ohs")
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=1836647951]
+color = Color(0.9372549, 0.99607843, 0.5019608, 1)
+polygon = PackedVector2Array(-16, -32, -16, 32, 16, 32, 16, -32)
+
+[node name="Polygon2D" type="Polygon2D" parent="Polygon2D" unique_id=2036630971]
+color = Color(0.75964993, 0.18647459, 0.12079238, 1)
+polygon = PackedVector2Array(0, -32, 16, -32, 16, 32, 0, 32)
+
+[node name="AttackArea" type="Area2D" parent="." unique_id=500830967]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackArea" unique_id=1560877762]
+position = Vector2(-30.25, 0)
+rotation = 0.00014954491
+shape = SubResource("RectangleShape2D_r8brs")
+
+[node name="CombatActionExecutor" type="Node" parent="." unique_id=712624786]
+script = ExtResource("2_bosoa")
+
+[node name="CombatComboExecutor" type="Node" parent="." unique_id=316690212]
+script = ExtResource("3_6r464")
+combo_data = ExtResource("4_ed1yj")
+
+[node name="CombatEnergy" type="Node" parent="." unique_id=1097028315]
+script = ExtResource("5_jxak6")
+
+[node name="SkillSelector" type="Node" parent="." unique_id=493049690]
+script = ExtResource("6_3veiq")
+normal_skill = ExtResource("7_dm8t1")
+special_skill = ExtResource("8_3u1yq")
+
+[node name="DefenseController" type="Node" parent="." unique_id=1115100380]
+script = ExtResource("9_dm8t1")

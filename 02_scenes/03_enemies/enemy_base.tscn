@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://xbdnmf07sbsw"]
+
+[ext_resource type="Script" uid="uid://bbcf6yclh3g4i" path="res://03_scripts/03_enemies/enemy_base.gd" id="1_d11cm"]
+[ext_resource type="Script" uid="uid://cy2d0guo72f44" path="res://03_scripts/01_combat/executor/combat_action_executor.gd" id="2_6jadh"]
+[ext_resource type="Script" uid="uid://o2ph3ikhg2ei" path="res://03_scripts/01_combat/executor/combat_combo_executor.gd" id="3_0o3if"]
+[ext_resource type="Script" uid="uid://j7e3c3om8y3g" path="res://03_scripts/03_enemies/ai_controller.gd" id="4_euay3"]
+[ext_resource type="Script" uid="uid://u3lrfb8y1fta" path="res://03_scripts/03_enemies/movement_controller.gd" id="5_47577"]
+[ext_resource type="Script" uid="uid://qmwr0q8t5je5" path="res://03_scripts/01_combat/system/defense_controller.gd" id="6_6jadh"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g1ohs"]
+size = Vector2(80, 126)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_r8brs"]
+size = Vector2(60, 40)
+
+[node name="EnemyBase" type="CharacterBody2D" unique_id=1045941600]
+script = ExtResource("1_d11cm")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2052551920]
+scale = Vector2(0.99999994, 0.99999994)
+shape = SubResource("RectangleShape2D_g1ohs")
+
+[node name="AttackArea" type="Area2D" parent="." unique_id=887800837]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackArea" unique_id=1394492945]
+shape = SubResource("RectangleShape2D_r8brs")
+
+[node name="Polygon2D" type="Polygon2D" parent="." unique_id=915970745]
+color = Color(0.81567484, 0.31843412, 0.24934879, 1)
+polygon = PackedVector2Array(-40, -64, -40, 64, 40, 64, 40, -64)
+
+[node name="Polygon2D" type="Polygon2D" parent="Polygon2D" unique_id=407728657]
+polygon = PackedVector2Array(-40, -64, -40, 64, -1, 64, 0, -64, -20, -64)
+
+[node name="CombatActionExecutor" type="Node" parent="." unique_id=1977122688]
+script = ExtResource("2_6jadh")
+metadata/_custom_type_script = "uid://cy2d0guo72f44"
+
+[node name="CombatComboExecutor" type="Node" parent="." unique_id=1883624513]
+script = ExtResource("3_0o3if")
+metadata/_custom_type_script = "uid://o2ph3ikhg2ei"
+
+[node name="AIController" type="Node" parent="." unique_id=629086169]
+script = ExtResource("4_euay3")
+
+[node name="MovementController" type="Node" parent="." unique_id=2097232132]
+script = ExtResource("5_47577")
+
+[node name="DefenseController" type="Node" parent="." unique_id=1897875124]
+script = ExtResource("6_6jadh")

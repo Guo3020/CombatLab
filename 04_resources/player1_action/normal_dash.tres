@@ -1,0 +1,55 @@
+[gd_resource type="Resource" script_class="CombatActionData" format=3 uid="uid://balpt6ac3e7yd"]
+
+[ext_resource type="Script" uid="uid://bx3y8p324q4xu" path="res://03_scripts/01_combat/data/hit_instance_data.gd" id="1_14x13"]
+[ext_resource type="Script" uid="uid://bj3diw4xg6hf0" path="res://03_scripts/01_combat/modules/combat_action_module.gd" id="1_pqhag"]
+[ext_resource type="Script" uid="uid://dp5gttsshciy0" path="res://03_scripts/01_combat/modules/movement_module.gd" id="2_14x13"]
+[ext_resource type="Script" uid="uid://b6rcn7gpfb78m" path="res://03_scripts/01_combat/modules/defense_module.gd" id="4_yuxwm"]
+[ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="5_xsu70"]
+
+[sub_resource type="Resource" id="Resource_4ikgc"]
+script = ExtResource("4_yuxwm")
+trigger_time_slow_on_success = true
+start_phase = 0
+metadata/_custom_type_script = "uid://b6rcn7gpfb78m"
+
+[sub_resource type="Resource" id="Resource_c32de"]
+script = ExtResource("2_14x13")
+movement_mode = 1
+stabilization_enabled = false
+stabilization_activation_mode = 0
+stabilization_speed = 4000.0
+stabilization_start_phase = 0
+stabilization_end_phase = 2
+stabilization_duration_start_phase = 1
+stabilization_duration = 0.2
+dash_speed = 800.0
+dash_duration = 0.2
+dash_up_end_y_multiplier = 0.75
+dash_diagonal_up_end_y_multiplier = 0.75
+dash_duck_speed_multiplier = 1.2
+end_velocity_enabled = true
+exclude_diagonal_down_end = true
+dash_time_freeze_enabled = true
+dash_time_freeze_duration = 0.08
+end_velocity_mode = 0
+end_speed = 680.0
+override_phase_mode = 0
+override_duration = 0.15
+override_speed = 240.0
+override_direction_source = 0
+override_custom_direction = Vector2(1, 0)
+override_suppress_gravity = false
+module_enabled = true
+module_name = "新模块"
+metadata/_custom_type_script = "uid://dp5gttsshciy0"
+
+[resource]
+script = ExtResource("5_xsu70")
+action_name = "普通冲刺"
+startup = 0.0
+active = 0.0
+recovery = 0.0
+input_window = 0.2
+action_priority = 1
+modules = Array[ExtResource("1_pqhag")]([SubResource("Resource_4ikgc"), SubResource("Resource_c32de")])
+metadata/_custom_type_script = "uid://bvyxsitu1yh05"

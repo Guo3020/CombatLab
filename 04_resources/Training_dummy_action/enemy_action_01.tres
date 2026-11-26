@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="CombatActionData" format=3 uid="uid://pdcigqcwqq0o"]
+
+[ext_resource type="Script" uid="uid://bx3y8p324q4xu" path="res://03_scripts/01_combat/data/hit_instance_data.gd" id="1_htf8t"]
+[ext_resource type="Script" uid="uid://bj3diw4xg6hf0" path="res://03_scripts/01_combat/modules/combat_action_module.gd" id="1_tfeyi"]
+[ext_resource type="Script" uid="uid://dgjymukq37tib" path="res://03_scripts/01_combat/modules/hit_module.gd" id="2_htf8t"]
+[ext_resource type="Script" uid="uid://d01ep54f0t2cy" path="res://03_scripts/01_combat/modules/hitstop_module.gd" id="3_bcveu"]
+[ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="4_5bglr"]
+
+[sub_resource type="Resource" id="Resource_yhuu6"]
+script = ExtResource("2_htf8t")
+module_name = "第一段攻击判定"
+metadata/_custom_type_script = "uid://dgjymukq37tib"
+
+[sub_resource type="Resource" id="Resource_tfeyi"]
+script = ExtResource("3_bcveu")
+attacker_time_freeze_duration = 0.6
+target_time_freeze_duration = 0.6166666666666667
+metadata/_custom_type_script = "uid://d01ep54f0t2cy"
+
+[resource]
+script = ExtResource("4_5bglr")
+action_id = &"enemy_combo_01"
+action_name = "怪物连击1"
+startup = 1.26
+active = 1.16
+recovery = 0.0
+input_window = 0.6
+modules = Array[ExtResource("1_tfeyi")]([SubResource("Resource_yhuu6"), SubResource("Resource_tfeyi")])
+metadata/_custom_type_script = "uid://bvyxsitu1yh05"

@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://bgitkub50g2cd"]
+
+[ext_resource type="Script" uid="uid://dskbc4yuibxq6" path="res://03_scripts/04_debug/combat_debug_overlay.gd" id="3_73ffk"]
+[ext_resource type="PackedScene" path="res://02_scenes/03_enemies/training_dummy_broken.tscn" id="3_jwede"]
+[ext_resource type="PackedScene" uid="uid://bosp20ghpiyip" path="res://02_scenes/02_player/player1.tscn" id="4_mjur0"]
+[ext_resource type="Script" uid="uid://mwidf6ocy4t1" path="res://03_scripts/05_system/hit_manager.gd" id="4_mjwjo"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_g1ohs"]
+size = Vector2(1152, 40)
+
+[node name="Main" type="Node2D" unique_id=790009120]
+
+[node name="traning_dummy" parent="." unique_id=1045941600 instance=ExtResource("3_jwede")]
+position = Vector2(859, 468)
+
+[node name="player1" parent="." unique_id=870416064 instance=ExtResource("4_mjur0")]
+position = Vector2(367, 482)
+
+[node name="Ground" type="StaticBody2D" parent="." unique_id=544454357]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=911828054]
+position = Vector2(576, 560)
+shape = SubResource("RectangleShape2D_g1ohs")
+
+[node name="Polygon2D" type="Polygon2D" parent="Ground" unique_id=387820138]
+position = Vector2(571, 544.00006)
+scale = Vector2(1, 6.925)
+color = Color(0.43519253, 0.43519217, 0.43519235, 1)
+polygon = PackedVector2Array(-576, 0, 576, 0, 576, 5, -576, 5)
+
+[node name="CombatDebugLayer" type="CanvasLayer" parent="." unique_id=653489227]
+
+[node name="CombatDebugOverlay" type="Control" parent="CombatDebugLayer" unique_id=618398334]
+layout_mode = 3
+anchor_right = 0.7699653
+anchor_bottom = 0.49845678
+offset_left = 184.0
+offset_top = 182.0
+offset_right = 224.0
+offset_bottom = 222.0
+rotation = -0.0041303984
+script = ExtResource("3_73ffk")
+metadata/_edit_use_anchors_ = true
+
+[node name="HitstopManager" type="Node" parent="." unique_id=616775395]
+script = ExtResource("4_mjwjo")

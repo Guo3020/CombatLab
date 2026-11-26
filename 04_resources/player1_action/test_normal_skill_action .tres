@@ -1,0 +1,68 @@
+[gd_resource type="Resource" script_class="CombatActionData" format=3 uid="uid://c4mipxxq80a8w"]
+
+[ext_resource type="Script" uid="uid://bj3diw4xg6hf0" path="res://03_scripts/01_combat/modules/combat_action_module.gd" id="1_dtxn8"]
+[ext_resource type="Script" uid="uid://bx3y8p324q4xu" path="res://03_scripts/01_combat/data/hit_instance_data.gd" id="1_mevji"]
+[ext_resource type="Script" uid="uid://dsiqusg72sqha" path="res://03_scripts/01_combat/data/hitbox_data.gd" id="2_c32de"]
+[ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="3_abeel"]
+[ext_resource type="Script" uid="uid://b6rcn7gpfb78m" path="res://03_scripts/01_combat/modules/defense_module.gd" id="4_8x5yl"]
+[ext_resource type="Script" uid="uid://dp5gttsshciy0" path="res://03_scripts/01_combat/modules/movement_module.gd" id="5_c32de"]
+
+[sub_resource type="Resource" id="Resource_xg6vm"]
+script = ExtResource("2_c32de")
+metadata/_custom_type_script = "uid://dsiqusg72sqha"
+
+[sub_resource type="Resource" id="Resource_7wkcq"]
+script = ExtResource("1_mevji")
+hitboxes = Array[ExtResource("2_c32de")]([SubResource("Resource_xg6vm")])
+metadata/_custom_type_script = "uid://bx3y8p324q4xu"
+
+[sub_resource type="Resource" id="Resource_g2ga6"]
+script = ExtResource("4_8x5yl")
+trigger_time_slow_on_success = true
+start_phase = 0
+end_phase = 2
+metadata/_custom_type_script = "uid://b6rcn7gpfb78m"
+
+[sub_resource type="Resource" id="Resource_pfusb"]
+script = ExtResource("5_c32de")
+movement_mode = 0
+stabilization_enabled = true
+stabilization_activation_mode = 0
+stabilization_speed = 900.0
+stabilization_start_phase = 0
+stabilization_end_phase = 2
+stabilization_duration_start_phase = 1
+stabilization_duration = 0.2
+dash_speed = 960.0
+dash_duration = 0.15
+dash_up_end_y_multiplier = 0.75
+dash_diagonal_up_end_y_multiplier = 0.75
+dash_duck_speed_multiplier = 1.2
+end_velocity_enabled = true
+exclude_diagonal_down_end = true
+dash_time_freeze_enabled = false
+dash_time_freeze_duration = 0.05
+end_velocity_mode = 0
+end_speed = 160.0
+override_phase_mode = 0
+override_duration = 0.15
+override_speed = 240.0
+override_direction_source = 0
+override_custom_direction = Vector2(1, 0)
+override_suppress_gravity = false
+module_enabled = true
+module_name = "新模块"
+metadata/_custom_type_script = "uid://dp5gttsshciy0"
+
+[resource]
+script = ExtResource("3_abeel")
+action_id = &"test_normal_skill_action"
+action_name = "test普特combo"
+startup = 0.5
+active = 0.5
+recovery = 0.5
+input_window = 0.8
+action_priority = 2
+hit_instances = Array[ExtResource("1_mevji")]([SubResource("Resource_7wkcq")])
+modules = Array[ExtResource("1_dtxn8")]([SubResource("Resource_g2ga6"), SubResource("Resource_pfusb")])
+metadata/_custom_type_script = "uid://bvyxsitu1yh05"

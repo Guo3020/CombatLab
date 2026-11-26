@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="CombatComboData" format=3 uid="uid://1svfkvdc8m8k"]
+
+[ext_resource type="Resource" uid="uid://pdcigqcwqq0o" path="res://04_resources/Training_dummy_action/enemy_action_01.tres" id="2_2ipbt"]
+[ext_resource type="Resource" uid="uid://drwsce4b10asj" path="res://04_resources/Training_dummy_action/enemy_action_02.tres" id="3_pgm8k"]
+[ext_resource type="Script" uid="uid://dbd8gbnjfswmy" path="res://03_scripts/01_combat/data/combat_combo_data.gd" id="3_uvt6j"]
+[ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="4_pj5yt"]
+
+[resource]
+script = ExtResource("3_uvt6j")
+actions = Array[ExtResource("4_pj5yt")]([ExtResource("2_2ipbt"), ExtResource("3_pgm8k")])
+metadata/_custom_type_script = "uid://dbd8gbnjfswmy"

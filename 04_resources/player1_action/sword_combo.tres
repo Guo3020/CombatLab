@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="CombatComboData" format=3 uid="uid://kkfh38m5qw7y"]
+
+[ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="1_dyxcx"]
+[ext_resource type="Resource" uid="uid://ctfeju03hdrn3" path="res://04_resources/player1_action/sword_combo_01.tres" id="2_2q7c4"]
+[ext_resource type="Script" uid="uid://dbd8gbnjfswmy" path="res://03_scripts/01_combat/data/combat_combo_data.gd" id="2_5ipdg"]
+[ext_resource type="Resource" uid="uid://4ltymptmjyf1" path="res://04_resources/player1_action/sword_combo_02.tres" id="3_notrx"]
+[ext_resource type="Resource" uid="uid://dqt3fel4fxt6t" path="res://04_resources/player1_action/sword_combo_03.tres" id="4_xxn3q"]
+
+[resource]
+script = ExtResource("2_5ipdg")
+combo_id = &"sword_combo"
+combo_name = "剑术三段连击"
+actions = Array[ExtResource("1_dyxcx")]([ExtResource("2_2q7c4"), ExtResource("3_notrx"), ExtResource("4_xxn3q")])
+metadata/_custom_type_script = "uid://dbd8gbnjfswmy"
