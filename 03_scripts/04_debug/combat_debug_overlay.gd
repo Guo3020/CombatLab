@@ -236,6 +236,58 @@ func _draw_timeline() -> void:
 		Color(0.25, 0.55, 0.95)
 	)
 
+	# HitInstance 时间窗口：相对于 Active 起点显示。
+	if executor != null and executor.is_action_running():
+		var context: CombatActionContext = executor.current_context
+		var active_duration: float = context.action_data.active
+		var active_start_x: float = start_x + startup_width
+
+		if active_duration > 0.0:
+			for index in range(context.action_data.hit_instances.size()):
+				var hit_instance: HitInstanceData = (
+					context.action_data.hit_instances[index]
+				)
+
+				if hit_instance == null:
+					continue
+
+				var start_ratio: float = clampf(
+					hit_instance.start_time / active_duration,
+					0.0,
+					1.0
+				)
+				var end_ratio: float = clampf(
+					hit_instance.end_time / active_duration,
+					0.0,
+					1.0
+				)
+
+				if end_ratio <= start_ratio:
+					continue
+
+				var instance_rect := Rect2(
+					active_start_x + active_width * start_ratio,
+					bar_y + 18.0 + float(index) * 6.0,
+					maxf(active_width * (end_ratio - start_ratio), 2.0),
+					4.0
+				)
+
+				draw_rect(
+					instance_rect,
+					Color(1.0, 0.35, 0.2, 0.95),
+					true
+				)
+
+				draw_string(
+					ThemeDB.fallback_font,
+					instance_rect.position + Vector2(-22.0, 5.0),
+					"HI%d" % index,
+					HORIZONTAL_ALIGNMENT_LEFT,
+					-1,
+					10,
+					Color(1.0, 0.65, 0.45)
+				)
+
 	# 时间轴游标
 	var progress: float = clampf(elapsed / total, 0.0, 1.0)
 	var cursor_x: float = start_x + timeline_width * progress
@@ -361,73 +413,140 @@ func _draw_hitbox() -> void:
 	if not show_hitbox:
 		return
 
-	var attack_area := player.get_node_or_null("AttackArea") as Area2D
+	_draw_actor_hitboxes(executor, "Player")
+	_draw_actor_hitboxes(enemy_executor, "Enemy")
 
-	if attack_area == null:
+
+func _draw_actor_hitboxes(
+	action_executor: CombatActionExecutor,
+	actor_label: String
+) -> void:
+	if action_executor == null or not action_executor.is_action_running():
 		return
 
-	var collision := attack_area.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	var debug_data: Dictionary = action_executor.get_debug_data()
+	var runtime_data: Dictionary = debug_data.get("runtime_data", {})
+	var instances: Array = runtime_data.get("hit_instance_runtime", [])
 
-	if collision == null or collision.shape == null:
+	for instance_data in instances:
+		var area := instance_data.get("area") as Area2D
+
+		if not is_instance_valid(area):
+			continue
+
+		var is_active: bool = bool(instance_data.get("enabled", false))
+		var border_color: Color
+		var fill_color: Color
+
+		if is_active:
+			border_color = Color(1.0, 0.2, 0.2, 1.0)
+			fill_color = Color(1.0, 0.15, 0.15, 0.18)
+		else:
+			border_color = Color(0.15, 0.65, 1.0, 0.8)
+			fill_color = Color(0.15, 0.65, 1.0, 0.07)
+
+		for child in area.get_children():
+			var collision := child as CollisionShape2D
+
+			if collision == null or collision.shape == null:
+				continue
+
+			_draw_runtime_hitbox_shape(
+				collision,
+				border_color,
+				fill_color
+			)
+
+		var label_position: Vector2 = (
+			_world_to_screen(area.global_position)
+			+ Vector2(0.0, -18.0)
+		)
+
+		var state_text: String = "ACTIVE" if is_active else "INACTIVE"
+		var hit_count: int = int(instance_data.get("hit_count", 0))
+		var instance_index: int = int(instance_data.get("index", 0))
+
+		draw_string(
+			ThemeDB.fallback_font,
+			label_position,
+			"%s HI-%d | %s | Hits: %d" % [
+				actor_label,
+				instance_index,
+				state_text,
+				hit_count
+			],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			13,
+			border_color
+		)
+
+
+func _draw_runtime_hitbox_shape(
+	collision: CollisionShape2D,
+	border_color: Color,
+	fill_color: Color
+) -> void:
+	var outline := _get_hitbox_shape_outline(collision.shape)
+
+	if outline.size() < 3:
 		return
 
-	var rectangle := collision.shape as RectangleShape2D
+	var screen_points := PackedVector2Array()
 
-	if rectangle == null:
-		return
+	for local_point in outline:
+		var world_point: Vector2 = collision.global_transform * local_point
+		screen_points.append(_world_to_screen(world_point))
 
-	var center: Vector2 = _world_to_screen(collision.global_position)
+	draw_colored_polygon(screen_points, fill_color)
 
-	var canvas_transform: Transform2D = get_viewport().get_canvas_transform()
+	var closed_points := screen_points.duplicate()
+	closed_points.append(screen_points[0])
+	draw_polyline(closed_points, border_color, 2.0)
 
-	var world_size: Vector2 = rectangle.size * collision.global_scale.abs()
-	var screen_size: Vector2 = world_size * canvas_transform.get_scale().abs()
 
-	var rect := Rect2(center - screen_size * 0.5, screen_size)
+func _get_hitbox_shape_outline(shape: Shape2D) -> PackedVector2Array:
+	var points := PackedVector2Array()
 
-	var is_active: bool = attack_area.monitoring
+	if shape is RectangleShape2D:
+		var half_size: Vector2 = (shape as RectangleShape2D).size * 0.5
+		points.append(Vector2(-half_size.x, -half_size.y))
+		points.append(Vector2(half_size.x, -half_size.y))
+		points.append(Vector2(half_size.x, half_size.y))
+		points.append(Vector2(-half_size.x, half_size.y))
 
-	# 生效时使用红色，未生效时使用蓝色
-	var border_color: Color
-	var fill_color: Color
+	elif shape is CircleShape2D:
+		var radius: float = (shape as CircleShape2D).radius
 
-	if is_active:
-		border_color = Color(1.0, 0.2, 0.2, 1.0)
-		fill_color = Color(1.0, 0.15, 0.15, 0.25)
-	else:
-		border_color = Color(0.15, 0.65, 1.0, 0.8)
-		fill_color = Color(0.15, 0.65, 1.0, 0.10)
+		for index in range(32):
+			var angle: float = TAU * float(index) / 32.0
+			points.append(Vector2(cos(angle), sin(angle)) * radius)
 
-	draw_rect(rect, fill_color, true)
-	draw_rect(rect, border_color, false, 2.0)
+	elif shape is CapsuleShape2D:
+		var capsule := shape as CapsuleShape2D
+		var radius: float = capsule.radius
+		var half_segment: float = maxf(
+			capsule.height * 0.5 - radius,
+			0.0
+		)
 
-	# 显示 Hitbox 中心
-	draw_circle(center, 3.0, border_color)
+		# 上半圆：从左侧经过顶部到右侧。
+		for index in range(17):
+			var angle: float = PI + PI * float(index) / 16.0
+			points.append(
+				Vector2(cos(angle), sin(angle)) * radius
+				+ Vector2(0.0, -half_segment)
+			)
 
-	# 计算 Hitbox 相对 Player 原点的实际偏移
-	var local_offset: Vector2 = player.to_local(collision.global_position)
+		# 下半圆：从右侧经过底部到左侧。
+		for index in range(17):
+			var angle: float = PI * float(index) / 16.0
+			points.append(
+				Vector2(cos(angle), sin(angle)) * radius
+				+ Vector2(0.0, half_segment)
+			)
 
-	var info_text: String = "Hitbox Center: (%.1f, %.1f)" % [
-		local_offset.x,
-		local_offset.y
-	]
-
-	var size_text: String = "Size: (%.1f, %.1f)" % [
-		rectangle.size.x,
-		rectangle.size.y
-	]
-
-	var state_text: String = "ACTIVE" if is_active else "INACTIVE"
-
-	draw_string(
-		ThemeDB.fallback_font,
-		rect.position + Vector2(0.0, rect.size.y + 17.0),
-		info_text + "  " + size_text + "  " + state_text,
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		13,
-		border_color
-	)
+	return points
 
 
 # ==================================================
@@ -449,9 +568,16 @@ func _draw_executor_info() -> void:
 
 	var state_text: String = "Executor: RUNNING" if running else "Executor: IDLE"
 
-	var hitbox_state: String = str(
-		runtime_data.get("hitbox_enabled", false)
+	var active_hit_instances: int = int(
+		runtime_data.get("hit_instance_active_count", 0)
 	)
+	var total_hit_instances: int = int(
+		runtime_data.get("hit_instance_count", 0)
+	)
+	var hitbox_state: String = "%d / %d" % [
+		active_hit_instances,
+		total_hit_instances
+	]
 
 	var info_position := Vector2(20.0, 35.0)
 
@@ -468,7 +594,7 @@ func _draw_executor_info() -> void:
 	draw_string(
 		ThemeDB.fallback_font,
 		info_position + Vector2(0.0, 22.0),
-		"Module Hitbox Enabled: " + hitbox_state,
+		"Active HitInstances: " + hitbox_state,
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
 		14,
