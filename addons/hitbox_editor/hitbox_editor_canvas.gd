@@ -168,11 +168,12 @@ func _input(event: InputEvent) -> void:
 		if not (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
 			return
 
-		if not dragging and event.position.distance_to(drag_mouse) >= DRAG_THRESHOLD:
+		var local_event := make_input_local(event) as InputEventMouseMotion
+		if not dragging and local_event.position.distance_to(drag_mouse) >= DRAG_THRESHOLD:
 			dragging = true
 
 		if dragging and is_instance_valid(drag_resource):
-			drag_resource.offset = drag_origin + (event.position - drag_mouse) / VIEW_SCALE
+			drag_resource.offset = drag_origin + (local_event.position - drag_mouse) / VIEW_SCALE
 			drag_resource.emit_changed()
 			queue_redraw()
 
