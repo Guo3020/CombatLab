@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://bx3y8p324q4xu" path="res://03_scripts/01_combat/data/hit_instance_data.gd" id="1_5bs2m"]
 [ext_resource type="Script" uid="uid://bj3diw4xg6hf0" path="res://03_scripts/01_combat/modules/combat_action_module.gd" id="1_5lcep"]
-[ext_resource type="Script" uid="uid://dgjymukq37tib" path="res://03_scripts/01_combat/modules/hit_module.gd" id="2_fsh13"]
 [ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="3_m2voi"]
 
 [sub_resource type="Resource" id="Resource_4ricy"]
