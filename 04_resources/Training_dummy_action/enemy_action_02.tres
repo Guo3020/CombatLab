@@ -11,4 +11,5 @@ active = 0.3
 recovery = 0.5
 interrupt_level = 1
 super_armor_level = 1
+modules = Array[ExtResource("1_wvh30")]([])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"
