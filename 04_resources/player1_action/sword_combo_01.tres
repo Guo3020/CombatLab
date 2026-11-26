@@ -14,6 +14,7 @@ metadata/_custom_type_script = "uid://dsiqusg72sqha"
 
 [sub_resource type="Resource" id="Resource_tehj2"]
 script = ExtResource("1_tehj2")
+collision_mask = 4
 hitboxes = Array[ExtResource("2_a1xv0")]([SubResource("Resource_a1xv0")])
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
@@ -56,6 +57,7 @@ startup = 0.2
 active = 0.4
 recovery = 0.2
 input_window = 0.6
+hit_module_enabled = true
 hit_instances = Array[ExtResource("1_tehj2")]([SubResource("Resource_tehj2")])
 modules = Array[ExtResource("1_yhuu6")]([SubResource("Resource_pfusb")])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"
