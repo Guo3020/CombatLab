@@ -8,6 +8,7 @@ var action_data: CombatActionData
 var selected_instance: HitInstanceData
 var selected_hitbox: HitboxData
 var tree: Tree
+var tree_panel: PanelContainer
 var canvas: Control
 var timeline: Control
 var status: Label
@@ -36,64 +37,71 @@ func _ready() -> void:
 	inspect.pressed.connect(_inspect_selected)
 	header.add_child(inspect)
 
-	var split := HSplitContainer.new()
-	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	layout.add_child(split)
-
-	var left := VBoxContainer.new()
-	left.custom_minimum_size.x = 220.0
-	split.add_child(left)
-
-	var list_label := Label.new()
-	list_label.text = "HitInstance / Hitbox 列表"
-	left.add_child(list_label)
-
-	tree = Tree.new()
-	tree.hide_root = true
-	tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	tree.item_selected.connect(_on_tree_selected)
-	left.add_child(tree)
-
-	var center := VBoxContainer.new()
-	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	split.add_child(center)
-
-	var canvas_label := Label.new()
-	canvas_label.text = "二维工作区 — 角色原点"
-	center.add_child(canvas_label)
-
 	canvas = Control.new()
 	canvas.set_script(CANVAS_SCRIPT)
 	canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	canvas.custom_minimum_size = Vector2(500, 360)
+	canvas.custom_minimum_size = Vector2(500, 300)
 	canvas.hitbox_selected.connect(_on_canvas_selected)
-	center.add_child(canvas)
+	layout.add_child(canvas)
 
-	var timeline_label := Label.new()
-	timeline_label.text = "Active 时间轴"
-	center.add_child(timeline_label)
+	_create_floating_instance_list()
 
 	timeline = Control.new()
 	timeline.set_script(TIMELINE_SCRIPT)
-	timeline.custom_minimum_size = Vector2(500, 112)
+	timeline.custom_minimum_size = Vector2(500, 132)
 	timeline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	timeline.hit_instance_selected.connect(_on_timeline_selected)
-	center.add_child(timeline)
+	layout.add_child(timeline)
 
 	status = Label.new()
 	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	layout.add_child(status)
+
 	_show_empty()
 	set_process(true)
+
+func _create_floating_instance_list() -> void:
+	tree_panel = PanelContainer.new()
+	tree_panel.name = "HitInstanceFloatingPanel"
+	tree_panel.position = Vector2(12, 12)
+	tree_panel.custom_minimum_size = Vector2(230, 210)
+	tree_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.055, 0.065, 0.085, 0.94)
+	panel_style.border_color = Color(0.48, 0.56, 0.68, 0.9)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(5)
+	panel_style.content_margin_left = 8
+	panel_style.content_margin_right = 8
+	panel_style.content_margin_top = 6
+	panel_style.content_margin_bottom = 6
+	tree_panel.add_theme_stylebox_override("panel", panel_style)
+	canvas.add_child(tree_panel)
+
+	var list_layout := VBoxContainer.new()
+	tree_panel.add_child(list_layout)
+
+	var list_label := Label.new()
+	list_label.text = "命中实例"
+	list_label.add_theme_color_override("font_color", Color(0.94, 0.96, 1.0))
+	list_label.add_theme_color_override("font_outline_color", Color(0.02, 0.025, 0.04, 1.0))
+	list_label.add_theme_constant_override("outline_size", 3)
+	list_label.add_theme_font_size_override("font_size", 13)
+	list_layout.add_child(list_label)
+
+	tree = Tree.new()
+	tree.hide_root = true
+	tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	tree.custom_minimum_size.y = 170
+	tree.item_selected.connect(_on_tree_selected)
+	list_layout.add_child(tree)
 
 func _process(_delta: float) -> void:
 	if action_data == null:
 		return
 
-	# Resource properties edited in the Inspector do not always emit
-	# Resource.changed. Refresh the small editor views while this tool is open.
 	canvas.queue_redraw()
 	timeline.queue_redraw()
 
@@ -109,9 +117,7 @@ func set_editor_plugin(value: EditorPlugin) -> void:
 		canvas.set_undo_redo(plugin.get_undo_redo())
 
 func set_action_data(value: CombatActionData) -> void:
-	if value == null:
-		return
-	if action_data == value:
+	if value == null or action_data == value:
 		return
 
 	action_data = value
@@ -296,7 +302,7 @@ func _update_status() -> void:
 	elif selected_instance != null:
 		status.text = "%s  |  命中实例：%.2f - %.2f 秒" % [label, selected_instance.start_time, selected_instance.end_time]
 	else:
-		status.text = "%s  |  请在左侧选择命中实例或判定框。" % label
+		status.text = "%s  |  请在悬浮列表中选择命中实例或判定框。" % label
 
 func _show_empty() -> void:
 	status.text = "请在文件系统中选择一个 CombatActionData 资源。"
