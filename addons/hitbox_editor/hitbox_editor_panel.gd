@@ -10,6 +10,7 @@ const DEFAULT_PANEL_POSITION := Vector2(12, 42)
 const DEFAULT_PANEL_WIDTH := 250.0
 const MIN_PANEL_WIDTH := 210.0
 const MAX_PANEL_WIDTH := 560.0
+const RESIZE_EDGE_WIDTH := 8.0
 
 var action_data: CombatActionData
 var selected_instance: HitInstanceData
@@ -132,9 +133,8 @@ func _create_floating_instance_list() -> void:
 	list_layout.add_child(tree)
 
 	resize_grip = Control.new()
-	resize_grip.custom_minimum_size = Vector2(18, 18)
-	resize_grip.size = Vector2(18, 18)
-	resize_grip.mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
+	resize_grip.custom_minimum_size = Vector2(RESIZE_EDGE_WIDTH, 1)
+	resize_grip.mouse_default_cursor_shape = Control.CURSOR_HSIZE
 	resize_grip.mouse_filter = Control.MOUSE_FILTER_STOP
 	resize_grip.gui_input.connect(_on_resize_grip_input)
 	tree_panel.add_child(resize_grip)
@@ -144,7 +144,14 @@ func _create_floating_instance_list() -> void:
 func _position_resize_grip() -> void:
 	if not is_instance_valid(resize_grip) or not is_instance_valid(tree_panel):
 		return
-	resize_grip.position = tree_panel.size - resize_grip.size - Vector2(3, 3)
+	resize_grip.position = Vector2(
+		tree_panel.size.x - RESIZE_EDGE_WIDTH,
+		0.0
+	)
+	resize_grip.size = Vector2(
+		RESIZE_EDGE_WIDTH,
+		tree_panel.size.y
+	)
 
 func _process(_delta: float) -> void:
 	if panel_dragging:
