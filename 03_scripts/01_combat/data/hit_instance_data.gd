@@ -44,6 +44,11 @@ var damage: float = 10.0
 # 同一个 HitInstance 的所有 Hitbox 同时开启和关闭，
 # 并共享同一份目标命中记录。
 @export_group("攻击判定")
+
+# 运行时 HitInstance Area2D 使用的碰撞遮罩。
+# 默认 1，保持原 AttackArea 的默认检测层。
+@export_flags_2d_physics var collision_mask: int = 1
+
 @export var hitboxes: Array[HitboxData] = []
 
 
