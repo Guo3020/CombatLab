@@ -1,6 +1,6 @@
 # CombatLab — Project Status
 
-> Last updated: 2026-11-26  
+> Last updated: 2026-11-27  
 > Project: Godot 2D side-view action-combat prototype  
 > Status source: current GitHub `main` plus user-confirmed test results. The HitInstance migration branch described below is not merged or locally tested yet.
 
@@ -14,7 +14,11 @@ Current migration branch: `feature/hitinstance-runtime-migration` (pending PR re
 
 The following changes have been prepared on the migration branch but have **not yet been tested in Godot**:
 
-- `HitModule` is automatically created by `CombatActionExecutor` when an Action has HitInstances.
+- `HitModule` is automatically created only when `CombatActionData.hit_module_enabled` is enabled; HitInstance presence alone no longer controls execution.
+- The HitInstance array is hidden in the Inspector while disabled, but its data is preserved. Enabling HitModule creates one default HitInstance only when the array is empty.
+- The default Player HitInstance mask targets Enemy Layer 3; Enemy Action 01 explicitly targets Player Layer 2.
+- Player1 and EnemyBase now have explicit collision layers/masks: Player Layer 2, Enemy Layer 3, both bodies mask World Layer 1.
+- Hit Editor floating panel resizing is restricted to its right edge; tree row selection remains handled by the Tree control.
 - One runtime `Area2D` is created per HitInstance, with one `CollisionShape2D` per Hitbox.
 - Hitboxes in one HitInstance share one target-hit record; different HitInstances have independent records.
 - HitInstance windows are evaluated against the current update interval to avoid waiting an additional Executor update after crossing a configured time boundary.
