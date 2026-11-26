@@ -100,6 +100,7 @@ func _process(_delta: float) -> void:
 	var signature := _build_tree_signature()
 	if signature != last_tree_signature:
 		_refresh_tree()
+		_connect_resource_changes()
 		_update_status()
 
 func set_editor_plugin(value: EditorPlugin) -> void:
