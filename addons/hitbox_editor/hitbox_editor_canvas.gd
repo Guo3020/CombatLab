@@ -67,18 +67,24 @@ func _draw_actor() -> void:
 			if candidate.is_in_group("player"):
 				player = candidate
 				break
-	var body := player.find_child("CollisionShape2D", true, false)
-	if not body is CollisionShape2D or body.shape == null:
+	var body_node := player.find_child("CollisionShape2D", true, false)
+	if not body_node is CollisionShape2D:
+		return
+	var body := body_node as CollisionShape2D
+	if body.shape == null:
 		return
 	var center := actor_origin + body.position * VIEW_SCALE
-	if body.shape is RectangleShape2D:
-		var s: Vector2 = body.shape.size * VIEW_SCALE
+	var shape := body.shape
+	if shape is RectangleShape2D:
+		var rectangle := shape as RectangleShape2D
+		var s: Vector2 = rectangle.size * VIEW_SCALE
 		var rect := Rect2(center - s * 0.5, s)
 		draw_rect(rect, Color(0.3, 0.7, 0.95, 0.08), true)
 		draw_rect(rect, Color(0.3, 0.7, 0.95, 0.7), false, 1.5)
-	elif body.shape is CircleShape2D:
-		draw_circle(center, body.shape.radius * VIEW_SCALE, Color(0.3, 0.7, 0.95, 0.08))
-		draw_arc(center, body.shape.radius * VIEW_SCALE, 0, TAU, 48, Color(0.3, 0.7, 0.95, 0.7), 1.5)
+	elif shape is CircleShape2D:
+		var circle := shape as CircleShape2D
+		draw_circle(center, circle.radius * VIEW_SCALE, Color(0.3, 0.7, 0.95, 0.08))
+		draw_arc(center, circle.radius * VIEW_SCALE, 0, TAU, 48, Color(0.3, 0.7, 0.95, 0.7), 1.5)
 	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(-25, 58), "Player1", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.65, 0.76, 0.86))
 
 func _draw_origin() -> void:

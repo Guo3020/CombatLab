@@ -26,7 +26,7 @@ func _get_plugin_name() -> String:
 	return "Hit Editor"
 
 func _get_plugin_icon() -> Texture2D:
-	return EditorInterface.get_editor_theme().get_icon("CollisionShape2D", "EditorIcons")
+	return EditorInterface.get_editor_theme().get_icon("Node", "EditorIcons")
 
 func _make_visible(visible: bool) -> void:
 	if is_instance_valid(main_panel):
