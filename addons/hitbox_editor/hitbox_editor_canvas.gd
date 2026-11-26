@@ -24,6 +24,8 @@ enum DragMode {
 var action_data: CombatActionData
 var selected_hitbox: HitboxData
 var undo_redo: EditorUndoRedoManager
+var hidden_instances: Dictionary = {}
+var hidden_hitboxes: Dictionary = {}
 
 var view_scale := BASE_SCALE
 var view_pan := Vector2.ZERO
@@ -60,6 +62,21 @@ func set_selection(_instance: HitInstanceData, hitbox: HitboxData) -> void:
 	selected_hitbox = hitbox
 	queue_redraw()
 
+func set_hidden_resources(instances: Dictionary, hitboxes: Dictionary) -> void:
+	hidden_instances = instances.duplicate()
+	hidden_hitboxes = hitboxes.duplicate()
+	if selected_hitbox != null and not _is_hitbox_visible(selected_hitbox):
+		selected_hitbox = null
+	queue_redraw()
+
+func _is_hitbox_visible(hitbox: HitboxData) -> bool:
+	if hidden_hitboxes.has(hitbox.get_instance_id()):
+		return false
+	for instance in action_data.hit_instances:
+		if instance != null and instance.hitboxes.has(hitbox):
+			return not hidden_instances.has(instance.get_instance_id())
+	return true
+
 func refresh_view() -> void:
 	queue_redraw()
 
@@ -73,12 +90,16 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, Vector2(20, 32), "请在文件系统中选择 CombatActionData 资源。", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.LIGHT_GRAY)
 		return
 
-	for instance in action_data.hit_instances:
-		if instance == null:
+	for instance_index in range(action_data.hit_instances.size()):
+		var instance: HitInstanceData = action_data.hit_instances[instance_index]
+		if instance == null or hidden_instances.has(instance.get_instance_id()):
 			continue
-		for hitbox in instance.hitboxes:
-			if hitbox != null:
-				_draw_hitbox(hitbox, hitbox == selected_hitbox)
+		for hitbox_index in range(instance.hitboxes.size()):
+			var hitbox: HitboxData = instance.hitboxes[hitbox_index]
+			if hitbox == null or hidden_hitboxes.has(hitbox.get_instance_id()):
+				continue
+			var hitbox_color := _get_hitbox_color(instance_index, hitbox_index)
+			_draw_hitbox(hitbox, hitbox == selected_hitbox, hitbox_color)
 
 	_draw_view_hint()
 
@@ -139,12 +160,17 @@ func _draw_origin() -> void:
 	draw_circle(actor_origin, 3, c)
 	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(10, -10), "角色原点", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, c)
 
-func _draw_hitbox(hitbox: HitboxData, selected: bool) -> void:
+func _get_hitbox_color(instance_index: int, hitbox_index: int) -> Color:
+	var hue := fposmod(0.02 + float(instance_index) * 0.19 + float(hitbox_index) * 0.035, 1.0)
+	var value := 0.96 - float(hitbox_index % 3) * 0.07
+	return Color.from_hsv(hue, 0.72, value)
+
+func _draw_hitbox(hitbox: HitboxData, selected: bool, base_color: Color) -> void:
 	var center := actor_origin + hitbox.offset * view_scale
 	draw_set_transform(center, deg_to_rad(hitbox.rotation_degrees), Vector2.ONE * view_scale)
 
-	var fill := Color(1, 0.2, 0.16, 0.22 if selected else 0.10)
-	var line := Color(1, 0.35, 0.27, 1.0 if selected else 0.55)
+	var fill := Color(base_color.r, base_color.g, base_color.b, 0.24 if selected else 0.11)
+	var line := Color(base_color.r, base_color.g, base_color.b, 1.0 if selected else 0.72)
 
 	match hitbox.shape_type:
 		HitboxData.ShapeType.RECTANGLE:
@@ -332,10 +358,11 @@ func _pick_handle(mouse: Vector2) -> DragMode:
 func _pick(mouse: Vector2) -> HitboxData:
 	var candidates: Array[HitboxData] = []
 	for instance in action_data.hit_instances:
-		if instance != null:
-			for hitbox in instance.hitboxes:
-				if hitbox != null:
-					candidates.append(hitbox)
+		if instance == null or hidden_instances.has(instance.get_instance_id()):
+			continue
+		for hitbox in instance.hitboxes:
+			if hitbox != null and not hidden_hitboxes.has(hitbox.get_instance_id()):
+				candidates.append(hitbox)
 
 	for i in range(candidates.size() - 1, -1, -1):
 		var hitbox := candidates[i]
