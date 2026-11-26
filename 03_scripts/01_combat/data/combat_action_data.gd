@@ -1,4 +1,3 @@
-
 @tool
 extends Resource
 class_name CombatActionData
@@ -8,11 +7,16 @@ class_name CombatActionData
 # 初始化
 # ==================================================
 
-
 func _init() -> void:
 	if modules.is_empty():
 		modules = [
 			MovementModule.new()
+		]
+
+	# 新建 Action 时提供一套可直接编辑的最小命中结构。
+	if hit_instances.is_empty():
+		hit_instances = [
+			HitInstanceData.new()
 		]
 
 
@@ -25,11 +29,6 @@ func _init() -> void:
 @export var action_id: StringName = &""
 @export var action_name: String = "新动作"
 @export var action_type: StringName = &"attack"
-
-
-
-
-
 
 
 # ==================================================
@@ -52,6 +51,7 @@ var input_window: float = 0.15
 
 @export_range(0.0, 100.0, 1.0)
 var energy_cost: float = 0.0
+
 
 # ==================================================
 # 动作覆盖与取消
@@ -102,11 +102,7 @@ var interrupt_level: int = 0
 @export_range(0, 10, 1)
 var super_armor_level: int = 0
 
-
-
-
 var input_buffer_enabled: bool = true
-
 
 
 # ==================================================

@@ -6,6 +6,13 @@ class_name HitInstanceData
 const FRAME_DURATION: float = 1.0 / 60.0
 
 
+func _init() -> void:
+	if hitboxes.is_empty():
+		hitboxes = [
+			HitboxData.new()
+		]
+
+
 # ==================================================
 # 命中时间
 # ==================================================
@@ -34,10 +41,9 @@ var damage: float = 10.0
 # 攻击判定
 # ==================================================
 
-@export_group("攻击判定")
-
 # 同一个 HitInstance 的所有 Hitbox 同时开启和关闭，
 # 并共享同一份目标命中记录。
+@export_group("攻击判定")
 @export var hitboxes: Array[HitboxData] = []
 
 
