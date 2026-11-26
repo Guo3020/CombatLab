@@ -5,9 +5,12 @@ signal hitbox_selected(hitbox: HitboxData)
 
 const VIEW_SCALE := 0.75
 const HANDLE_RADIUS := 7.0
+const DRAG_THRESHOLD := 3.0
+
 var action_data: CombatActionData
 var selected_hitbox: HitboxData
 var undo_redo: EditorUndoRedoManager
+var drag_pending := false
 var dragging := false
 var drag_resource: HitboxData
 var drag_origin := Vector2.ZERO
@@ -24,6 +27,9 @@ func set_undo_redo(value: EditorUndoRedoManager) -> void:
 func set_action_data(value: CombatActionData) -> void:
 	action_data = value
 	selected_hitbox = null
+	drag_pending = false
+	dragging = false
+	drag_resource = null
 	queue_redraw()
 
 func set_selection(_instance: HitInstanceData, hitbox: HitboxData) -> void:
@@ -35,9 +41,11 @@ func _draw() -> void:
 	_draw_grid()
 	_draw_actor()
 	_draw_origin()
+
 	if action_data == null:
-		draw_string(ThemeDB.fallback_font, Vector2(20, 32), "Select a CombatActionData resource in FileSystem.", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.LIGHT_GRAY)
+		draw_string(ThemeDB.fallback_font, Vector2(20, 32), "请在文件系统中选择 CombatActionData 资源。", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.LIGHT_GRAY)
 		return
+
 	for instance in action_data.hit_instances:
 		if instance == null:
 			continue
@@ -61,18 +69,22 @@ func _draw_actor() -> void:
 	var root := EditorInterface.get_edited_scene_root()
 	if root == null:
 		return
+
 	var player: Node = root
 	if not root.is_in_group("player"):
 		for candidate in root.find_children("*", "CharacterBody2D", true, false):
 			if candidate.is_in_group("player"):
 				player = candidate
 				break
+
 	var body_node := player.find_child("CollisionShape2D", true, false)
 	if not body_node is CollisionShape2D:
 		return
+
 	var body := body_node as CollisionShape2D
 	if body.shape == null:
 		return
+
 	var center := actor_origin + body.position * VIEW_SCALE
 	var shape := body.shape
 	if shape is RectangleShape2D:
@@ -85,6 +97,7 @@ func _draw_actor() -> void:
 		var circle := shape as CircleShape2D
 		draw_circle(center, circle.radius * VIEW_SCALE, Color(0.3, 0.7, 0.95, 0.08))
 		draw_arc(center, circle.radius * VIEW_SCALE, 0, TAU, 48, Color(0.3, 0.7, 0.95, 0.7), 1.5)
+
 	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(-25, 58), "Player1", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.65, 0.76, 0.86))
 
 func _draw_origin() -> void:
@@ -92,13 +105,15 @@ func _draw_origin() -> void:
 	draw_line(actor_origin + Vector2(-18, 0), actor_origin + Vector2(18, 0), c, 1.5)
 	draw_line(actor_origin + Vector2(0, -18), actor_origin + Vector2(0, 18), c, 1.5)
 	draw_circle(actor_origin, 3, c)
-	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(10, -10), "Actor Origin", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, c)
+	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(10, -10), "角色原点", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, c)
 
 func _draw_hitbox(hitbox: HitboxData, selected: bool) -> void:
 	var center := actor_origin + hitbox.offset * VIEW_SCALE
 	draw_set_transform(center, deg_to_rad(hitbox.rotation_degrees), Vector2.ONE * VIEW_SCALE)
+
 	var fill := Color(1, 0.2, 0.16, 0.22 if selected else 0.10)
 	var line := Color(1, 0.35, 0.27, 1.0 if selected else 0.55)
+
 	match hitbox.shape_type:
 		HitboxData.ShapeType.RECTANGLE:
 			var rect := Rect2(-hitbox.rectangle_size * 0.5, hitbox.rectangle_size)
@@ -121,6 +136,7 @@ func _draw_hitbox(hitbox: HitboxData, selected: bool) -> void:
 			draw_line(Vector2(r,-half), Vector2(r,half), line, 2.0 / VIEW_SCALE)
 			draw_arc(Vector2(0,-half), r, PI, TAU, 32, line, 2.0 / VIEW_SCALE)
 			draw_arc(Vector2(0,half), r, 0, PI, 32, line, 2.0 / VIEW_SCALE)
+
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	if selected:
 		draw_circle(center, HANDLE_RADIUS, Color(1,0.88,0.3))
@@ -129,35 +145,56 @@ func _draw_hitbox(hitbox: HitboxData, selected: bool) -> void:
 func _gui_input(event: InputEvent) -> void:
 	if action_data == null:
 		return
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			var hitbox := _pick(event.position)
-			if hitbox != null:
-				hitbox_selected.emit(hitbox)
-				selected_hitbox = hitbox
-				dragging = true
-				drag_resource = hitbox
-				drag_origin = hitbox.offset
-				drag_mouse = event.position
-				accept_event()
-		elif dragging:
-			_finish_drag()
+
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		var hitbox := _pick(event.position)
+		if hitbox != null:
+			selected_hitbox = hitbox
+			hitbox_selected.emit(hitbox)
+
+			# A click selects. Dragging only begins after the pointer actually moves.
+			drag_pending = true
+			dragging = false
+			drag_resource = hitbox
+			drag_origin = hitbox.offset
+			drag_mouse = event.position
 			accept_event()
-	elif event is InputEventMouseMotion and dragging:
-		drag_resource.offset = drag_origin + (event.position - drag_mouse) / VIEW_SCALE
-		drag_resource.emit_changed()
-		queue_redraw()
-		accept_event()
+
+func _input(event: InputEvent) -> void:
+	if not drag_pending and not dragging:
+		return
+
+	if event is InputEventMouseMotion:
+		if not (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+			return
+
+		if not dragging and event.position.distance_to(drag_mouse) >= DRAG_THRESHOLD:
+			dragging = true
+
+		if dragging and is_instance_valid(drag_resource):
+			drag_resource.offset = drag_origin + (event.position - drag_mouse) / VIEW_SCALE
+			drag_resource.emit_changed()
+			queue_redraw()
+
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		_finish_drag()
 
 func _finish_drag() -> void:
+	if not drag_pending and not dragging:
+		return
+
+	var moved_resource := drag_resource
+	var final_value := moved_resource.offset if is_instance_valid(moved_resource) else drag_origin
+	drag_pending = false
 	dragging = false
-	var final_value := drag_resource.offset
-	if not final_value.is_equal_approx(drag_origin) and undo_redo != null:
-		undo_redo.create_action("Move Hitbox")
-		undo_redo.add_do_property(drag_resource, "offset", final_value)
-		undo_redo.add_undo_property(drag_resource, "offset", drag_origin)
+
+	if is_instance_valid(moved_resource) and not final_value.is_equal_approx(drag_origin) and undo_redo != null:
+		undo_redo.create_action("移动判定框")
+		undo_redo.add_do_property(moved_resource, "offset", final_value)
+		undo_redo.add_undo_property(moved_resource, "offset", drag_origin)
 		undo_redo.commit_action()
-		drag_resource.emit_changed()
+		moved_resource.emit_changed()
+
 	drag_resource = null
 	queue_redraw()
 
@@ -168,16 +205,22 @@ func _pick(mouse: Vector2) -> HitboxData:
 			for hitbox in instance.hitboxes:
 				if hitbox != null:
 					candidates.append(hitbox)
+
 	for i in range(candidates.size() - 1, -1, -1):
 		var h := candidates[i]
 		var p := ((mouse - actor_origin - h.offset * VIEW_SCALE) / VIEW_SCALE).rotated(-deg_to_rad(h.rotation_degrees))
+
 		match h.shape_type:
 			HitboxData.ShapeType.RECTANGLE:
-				if Rect2(-h.rectangle_size * 0.5, h.rectangle_size).has_point(p): return h
+				if Rect2(-h.rectangle_size * 0.5, h.rectangle_size).has_point(p):
+					return h
 			HitboxData.ShapeType.CIRCLE:
-				if p.length() <= h.circle_radius: return h
+				if p.length() <= h.circle_radius:
+					return h
 			HitboxData.ShapeType.CAPSULE:
 				var half := maxf((h.capsule_height - h.capsule_radius * 2) * 0.5, 0)
 				var nearest := clampf(p.y, -half, half)
-				if Vector2(p.x, p.y - nearest).length() <= h.capsule_radius: return h
+				if Vector2(p.x, p.y - nearest).length() <= h.capsule_radius:
+					return h
+
 	return null
