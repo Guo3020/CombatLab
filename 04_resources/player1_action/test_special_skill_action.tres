@@ -14,4 +14,5 @@ active = 0.2
 recovery = 0.5
 action_priority = 2
 cancelable_phases = 0
+modules = Array[ExtResource("1_5lcep")]([])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"
