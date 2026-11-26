@@ -15,11 +15,6 @@ end_time = 0.5
 hitboxes = Array[ExtResource("2_fs84i")]([SubResource("Resource_tehj2")])
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
-[sub_resource type="Resource" id="Resource_yhuu6"]
-script = ExtResource("2_nyabd")
-module_name = "第二段攻击判定"
-metadata/_custom_type_script = "uid://dgjymukq37tib"
-
 [resource]
 script = ExtResource("3_g6vsu")
 action_id = &"sword_combo_02"
@@ -29,5 +24,4 @@ active = 0.2
 recovery = 0.2
 input_window = 1.0
 hit_instances = Array[ExtResource("1_fs84i")]([SubResource("Resource_fs84i")])
-modules = Array[ExtResource("1_hi0tf")]([SubResource("Resource_yhuu6")])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"
