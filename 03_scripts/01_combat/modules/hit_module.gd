@@ -61,6 +61,7 @@ func on_module_start(context: RefCounted) -> void:
 			runtime_area.add_child(collision_shape)
 
 		var hit_targets: Array[Node2D] = []
+		var runtime_state: Dictionary = {"enabled": false}
 
 		var callback := Callable(
 			self,
@@ -69,7 +70,8 @@ func on_module_start(context: RefCounted) -> void:
 			context,
 			hit_instance,
 			hit_targets,
-			runtime_area
+			runtime_area,
+			runtime_state
 		)
 
 		runtime_area.body_entered.connect(callback)
@@ -79,6 +81,7 @@ func on_module_start(context: RefCounted) -> void:
 			"area": runtime_area,
 			"hit_targets": hit_targets,
 			"callback": callback,
+			"state": runtime_state,
 			"enabled": false
 		})
 
@@ -173,6 +176,7 @@ func on_module_update(context: RefCounted, delta: float) -> void:
 			continue
 
 		runtime["enabled"] = should_enable
+		runtime["state"]["enabled"] = should_enable
 		area.set_deferred("monitoring", should_enable)
 
 	_write_debug_data(context)
@@ -186,6 +190,7 @@ func _disable_all_hit_instances() -> void:
 			area.set_deferred("monitoring", false)
 
 		runtime["enabled"] = false
+		runtime["state"]["enabled"] = false
 
 
 func _write_debug_data(context: RefCounted) -> void:
@@ -227,13 +232,17 @@ func _on_body_entered(
 	context: RefCounted,
 	hit_instance: HitInstanceData,
 	hit_targets: Array[Node2D],
-	runtime_area: Area2D
+	runtime_area: Area2D,
+	runtime_state: Dictionary
 ) -> void:
 
 	if context == null or not context.is_running:
 		return
 
 	if context.current_phase != &"active":
+		return
+
+	if not runtime_state.get("enabled", false):
 		return
 
 	if not is_instance_valid(runtime_area) or not runtime_area.monitoring:
