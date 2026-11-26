@@ -3,19 +3,45 @@ extends Control
 
 signal hitbox_selected(hitbox: HitboxData)
 
-const VIEW_SCALE := 0.75
+const BASE_SCALE := 0.75
+const MIN_SCALE := 0.15
+const MAX_SCALE := 3.0
+const ZOOM_FACTOR := 1.12
 const HANDLE_RADIUS := 7.0
+const HANDLE_PICK_RADIUS := 12.0
 const DRAG_THRESHOLD := 3.0
+
+enum DragMode {
+	NONE,
+	MOVE,
+	RESIZE_RECT,
+	RESIZE_CIRCLE,
+	RESIZE_CAPSULE_RADIUS,
+	RESIZE_CAPSULE_HEIGHT,
+	PAN
+}
 
 var action_data: CombatActionData
 var selected_hitbox: HitboxData
 var undo_redo: EditorUndoRedoManager
+
+var view_scale := BASE_SCALE
+var view_pan := Vector2.ZERO
+var actor_origin := Vector2.ZERO
+
+var drag_mode := DragMode.NONE
 var drag_pending := false
 var dragging := false
 var drag_resource: HitboxData
-var drag_origin := Vector2.ZERO
-var drag_mouse := Vector2.ZERO
-var actor_origin := Vector2.ZERO
+var drag_start_mouse := Vector2.ZERO
+var drag_start_offset := Vector2.ZERO
+var drag_start_size := Vector2.ZERO
+var drag_start_radius := 0.0
+var drag_start_height := 0.0
+var drag_anchor := Vector2.ZERO
+var drag_handle_index := -1
+var pan_start := Vector2.ZERO
+var pan_start_offset := Vector2.ZERO
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -27,17 +53,18 @@ func set_undo_redo(value: EditorUndoRedoManager) -> void:
 func set_action_data(value: CombatActionData) -> void:
 	action_data = value
 	selected_hitbox = null
-	drag_pending = false
-	dragging = false
-	drag_resource = null
+	_cancel_interaction()
 	queue_redraw()
 
 func set_selection(_instance: HitInstanceData, hitbox: HitboxData) -> void:
 	selected_hitbox = hitbox
 	queue_redraw()
 
+func refresh_view() -> void:
+	queue_redraw()
+
 func _draw() -> void:
-	actor_origin = size * 0.5 + Vector2(-80, 0)
+	actor_origin = size * 0.5 + Vector2(-80, 0) + view_pan
 	_draw_grid()
 	_draw_actor()
 	_draw_origin()
@@ -53,14 +80,18 @@ func _draw() -> void:
 			if hitbox != null:
 				_draw_hitbox(hitbox, hitbox == selected_hitbox)
 
+	_draw_view_hint()
+
 func _draw_grid() -> void:
 	var c := Color(0.38, 0.42, 0.48, 0.22)
-	var step := 40.0
-	var x := fposmod(actor_origin.x, step)
+	var step := 40.0 * view_scale
+	var start_x := fposmod(actor_origin.x, step)
+	var start_y := fposmod(actor_origin.y, step)
+	var x := start_x
 	while x < size.x:
 		draw_line(Vector2(x, 0), Vector2(x, size.y), c, 1)
 		x += step
-	var y := fposmod(actor_origin.y, step)
+	var y := start_y
 	while y < size.y:
 		draw_line(Vector2(0, y), Vector2(size.x, y), c, 1)
 		y += step
@@ -85,31 +116,32 @@ func _draw_actor() -> void:
 	if body.shape == null:
 		return
 
-	var center := actor_origin + body.position * VIEW_SCALE
+	var center := actor_origin + body.position * view_scale
 	var shape := body.shape
 	if shape is RectangleShape2D:
 		var rectangle := shape as RectangleShape2D
-		var s: Vector2 = rectangle.size * VIEW_SCALE
+		var s: Vector2 = rectangle.size * view_scale
 		var rect := Rect2(center - s * 0.5, s)
 		draw_rect(rect, Color(0.3, 0.7, 0.95, 0.08), true)
 		draw_rect(rect, Color(0.3, 0.7, 0.95, 0.7), false, 1.5)
 	elif shape is CircleShape2D:
 		var circle := shape as CircleShape2D
-		draw_circle(center, circle.radius * VIEW_SCALE, Color(0.3, 0.7, 0.95, 0.08))
-		draw_arc(center, circle.radius * VIEW_SCALE, 0, TAU, 48, Color(0.3, 0.7, 0.95, 0.7), 1.5)
+		draw_circle(center, circle.radius * view_scale, Color(0.3, 0.7, 0.95, 0.08))
+		draw_arc(center, circle.radius * view_scale, 0, TAU, 48, Color(0.3, 0.7, 0.95, 0.7), 1.5)
 
-	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(-25, 58), "Player1", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.65, 0.76, 0.86))
+	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(-25, 58) * view_scale, "Player1", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.65, 0.76, 0.86))
 
 func _draw_origin() -> void:
 	var c := Color(1, 0.82, 0.25, 0.95)
-	draw_line(actor_origin + Vector2(-18, 0), actor_origin + Vector2(18, 0), c, 1.5)
-	draw_line(actor_origin + Vector2(0, -18), actor_origin + Vector2(0, 18), c, 1.5)
+	var arm := 18.0 * view_scale
+	draw_line(actor_origin + Vector2(-arm, 0), actor_origin + Vector2(arm, 0), c, 1.5)
+	draw_line(actor_origin + Vector2(0, -arm), actor_origin + Vector2(0, arm), c, 1.5)
 	draw_circle(actor_origin, 3, c)
 	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(10, -10), "角色原点", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, c)
 
 func _draw_hitbox(hitbox: HitboxData, selected: bool) -> void:
-	var center := actor_origin + hitbox.offset * VIEW_SCALE
-	draw_set_transform(center, deg_to_rad(hitbox.rotation_degrees), Vector2.ONE * VIEW_SCALE)
+	var center := actor_origin + hitbox.offset * view_scale
+	draw_set_transform(center, deg_to_rad(hitbox.rotation_degrees), Vector2.ONE * view_scale)
 
 	var fill := Color(1, 0.2, 0.16, 0.22 if selected else 0.10)
 	var line := Color(1, 0.35, 0.27, 1.0 if selected else 0.55)
@@ -118,86 +150,181 @@ func _draw_hitbox(hitbox: HitboxData, selected: bool) -> void:
 		HitboxData.ShapeType.RECTANGLE:
 			var rect := Rect2(-hitbox.rectangle_size * 0.5, hitbox.rectangle_size)
 			draw_rect(rect, fill, true)
-			draw_rect(rect, line, false, 2.0 / VIEW_SCALE)
+			draw_rect(rect, line, false, 2.0 / view_scale)
 			if selected:
-				var h := hitbox.rectangle_size * 0.5
-				for p in [Vector2(-h.x,-h.y), Vector2(h.x,-h.y), Vector2(h.x,h.y), Vector2(-h.x,h.y)]:
-					draw_circle(p, HANDLE_RADIUS / VIEW_SCALE, Color.WHITE)
+				var half := hitbox.rectangle_size * 0.5
+				for p in _rect_handle_points(half):
+					draw_rect(Rect2(p - Vector2.ONE * HANDLE_RADIUS / view_scale, Vector2.ONE * HANDLE_RADIUS * 2.0 / view_scale), Color(1, 0.88, 0.3), true)
 		HitboxData.ShapeType.CIRCLE:
 			draw_circle(Vector2.ZERO, hitbox.circle_radius, fill)
-			draw_arc(Vector2.ZERO, hitbox.circle_radius, 0, TAU, 64, line, 2.0 / VIEW_SCALE)
+			draw_arc(Vector2.ZERO, hitbox.circle_radius, 0, TAU, 64, line, 2.0 / view_scale)
+			if selected:
+				draw_circle(Vector2(hitbox.circle_radius, 0), HANDLE_RADIUS / view_scale, Color(1, 0.88, 0.3))
 		HitboxData.ShapeType.CAPSULE:
-			var r := hitbox.capsule_radius
-			var half := maxf((hitbox.capsule_height - r * 2) * 0.5, 0)
-			draw_rect(Rect2(Vector2(-r,-half), Vector2(r*2,half*2)), fill, true)
-			draw_circle(Vector2(0,-half), r, fill)
-			draw_circle(Vector2(0,half), r, fill)
-			draw_line(Vector2(-r,-half), Vector2(-r,half), line, 2.0 / VIEW_SCALE)
-			draw_line(Vector2(r,-half), Vector2(r,half), line, 2.0 / VIEW_SCALE)
-			draw_arc(Vector2(0,-half), r, PI, TAU, 32, line, 2.0 / VIEW_SCALE)
-			draw_arc(Vector2(0,half), r, 0, PI, 32, line, 2.0 / VIEW_SCALE)
+			var radius := hitbox.capsule_radius
+			var half := maxf((hitbox.capsule_height - radius * 2.0) * 0.5, 0.0)
+			draw_rect(Rect2(Vector2(-radius, -half), Vector2(radius * 2.0, half * 2.0)), fill, true)
+			draw_circle(Vector2(0, -half), radius, fill)
+			draw_circle(Vector2(0, half), radius, fill)
+			draw_line(Vector2(-radius, -half), Vector2(-radius, half), line, 2.0 / view_scale)
+			draw_line(Vector2(radius, -half), Vector2(radius, half), line, 2.0 / view_scale)
+			draw_arc(Vector2(0, -half), radius, PI, TAU, 32, line, 2.0 / view_scale)
+			draw_arc(Vector2(0, half), radius, 0, PI, 32, line, 2.0 / view_scale)
+			if selected:
+				draw_circle(Vector2(radius, 0), HANDLE_RADIUS / view_scale, Color(1, 0.88, 0.3))
+				draw_circle(Vector2(0, half + radius), HANDLE_RADIUS / view_scale, Color(1, 0.88, 0.3))
 
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-	if selected:
-		draw_circle(center, HANDLE_RADIUS, Color(1,0.88,0.3))
-		draw_circle(center, 3, Color(0.12,0.12,0.12))
+
+func _rect_handle_points(half: Vector2) -> Array[Vector2]:
+	return [
+		Vector2(-half.x, -half.y),
+		Vector2(half.x, -half.y),
+		Vector2(half.x, half.y),
+		Vector2(-half.x, half.y)
+	]
+
+func _draw_view_hint() -> void:
+	var hint := "滚轮：缩放    中键拖动：平移    左键拖动：移动 / 调整尺寸    缩放 %.0f%%" % (view_scale / BASE_SCALE * 100.0)
+	draw_string(ThemeDB.fallback_font, Vector2(12, size.y - 12), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.72, 0.75, 0.8, 0.85))
 
 func _gui_input(event: InputEvent) -> void:
-	if action_data == null:
-		return
-
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var hitbox := _pick(event.position)
-		if hitbox != null:
-			selected_hitbox = hitbox
-			hitbox_selected.emit(hitbox)
-
-			# A click selects. Dragging only begins after the pointer actually moves.
-			drag_pending = true
-			dragging = false
-			drag_resource = hitbox
-			drag_origin = hitbox.offset
-			drag_mouse = event.position
+	if event is InputEventMouseButton:
+		var button := event as InputEventMouseButton
+		if button.button_index == MOUSE_BUTTON_WHEEL_UP and button.pressed:
+			_zoom_at(button.position, ZOOM_FACTOR)
+			accept_event()
+		elif button.button_index == MOUSE_BUTTON_WHEEL_DOWN and button.pressed:
+			_zoom_at(button.position, 1.0 / ZOOM_FACTOR)
+			accept_event()
+		elif button.button_index == MOUSE_BUTTON_MIDDLE:
+			if button.pressed:
+				drag_mode = DragMode.PAN
+				pan_start = button.position
+				pan_start_offset = view_pan
+			else:
+				if drag_mode == DragMode.PAN:
+					drag_mode = DragMode.NONE
+			accept_event()
+		elif button.button_index == MOUSE_BUTTON_LEFT and button.pressed and action_data != null:
+			_begin_left_drag(button.position)
 			accept_event()
 
 func _input(event: InputEvent) -> void:
-	if not drag_pending and not dragging:
-		return
-
 	if event is InputEventMouseMotion:
-		if not (event.button_mask & MOUSE_BUTTON_MASK_LEFT):
+		if drag_mode == DragMode.NONE:
+			return
+		var local_event := make_input_local(event) as InputEventMouseMotion
+		var mouse := local_event.position
+		if drag_mode == DragMode.PAN:
+			view_pan = pan_start_offset + mouse - pan_start
+			queue_redraw()
 			return
 
-		var local_event := make_input_local(event) as InputEventMouseMotion
-		if not dragging and local_event.position.distance_to(drag_mouse) >= DRAG_THRESHOLD:
-			dragging = true
+		if drag_pending and not dragging and mouse.distance_to(drag_start_mouse) < DRAG_THRESHOLD:
+			return
+		dragging = true
+		_apply_drag(mouse)
+		queue_redraw()
 
-		if dragging and is_instance_valid(drag_resource):
-			drag_resource.offset = drag_origin + (local_event.position - drag_mouse) / VIEW_SCALE
-			drag_resource.emit_changed()
-			queue_redraw()
+	elif event is InputEventMouseButton and not event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT and drag_mode != DragMode.NONE and drag_mode != DragMode.PAN:
+			_finish_edit()
+		elif event.button_index == MOUSE_BUTTON_MIDDLE and drag_mode == DragMode.PAN:
+			drag_mode = DragMode.NONE
 
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
-		_finish_drag()
-
-func _finish_drag() -> void:
-	if not drag_pending and not dragging:
+func _begin_left_drag(mouse: Vector2) -> void:
+	var handle_mode := _pick_handle(mouse)
+	if handle_mode != DragMode.NONE and selected_hitbox != null:
+		_start_edit(handle_mode, selected_hitbox, mouse)
 		return
 
-	var moved_resource := drag_resource
-	var final_value := moved_resource.offset if is_instance_valid(moved_resource) else drag_origin
-	drag_pending = false
+	var hitbox := _pick(mouse)
+	if hitbox == null:
+		selected_hitbox = null
+		hitbox_selected.emit(null)
+		queue_redraw()
+		return
+
+	selected_hitbox = hitbox
+	hitbox_selected.emit(hitbox)
+	_start_edit(DragMode.MOVE, hitbox, mouse)
+
+func _start_edit(mode: DragMode, hitbox: HitboxData, mouse: Vector2) -> void:
+	drag_mode = mode
+	drag_pending = true
 	dragging = false
+	drag_resource = hitbox
+	drag_start_mouse = mouse
+	drag_start_offset = hitbox.offset
+	drag_start_size = hitbox.rectangle_size
+	drag_start_radius = hitbox.circle_radius if hitbox.shape_type == HitboxData.ShapeType.CIRCLE else hitbox.capsule_radius
+	drag_start_height = hitbox.capsule_height
 
-	if is_instance_valid(moved_resource) and not final_value.is_equal_approx(drag_origin) and undo_redo != null:
-		undo_redo.create_action("移动判定框")
-		undo_redo.add_do_property(moved_resource, "offset", final_value)
-		undo_redo.add_undo_property(moved_resource, "offset", drag_origin)
-		undo_redo.commit_action()
-		moved_resource.emit_changed()
-
-	drag_resource = null
+	if mode == DragMode.RESIZE_RECT:
+		var local_mouse := _to_hitbox_local(mouse, hitbox)
+		var half := drag_start_size * 0.5
+		var points := _rect_handle_points(half)
+		var nearest_index := 0
+		var nearest_distance := INF
+		for i in range(points.size()):
+			var d := (local_mouse - points[i]).length()
+			if d < nearest_distance:
+				nearest_distance = d
+				nearest_index = i
+		drag_handle_index = nearest_index
+		drag_anchor = -points[nearest_index]
 	queue_redraw()
+
+func _apply_drag(mouse: Vector2) -> void:
+	if not is_instance_valid(drag_resource):
+		return
+
+	match drag_mode:
+		DragMode.MOVE:
+			drag_resource.offset = drag_start_offset + (mouse - drag_start_mouse) / view_scale
+		DragMode.RESIZE_RECT:
+			var local_mouse := _to_hitbox_local(mouse, drag_resource)
+			var new_center := (drag_anchor + local_mouse) * 0.5
+			var new_size := (local_mouse - drag_anchor).abs()
+			drag_resource.rectangle_size = Vector2(maxf(new_size.x, 2.0), maxf(new_size.y, 2.0))
+			drag_resource.offset = drag_start_offset + new_center.rotated(deg_to_rad(drag_resource.rotation_degrees))
+		DragMode.RESIZE_CIRCLE:
+			var local_mouse := _to_hitbox_local(mouse, drag_resource)
+			drag_resource.circle_radius = maxf(local_mouse.length(), 2.0)
+		DragMode.RESIZE_CAPSULE_RADIUS:
+			var local_mouse := _to_hitbox_local(mouse, drag_resource)
+			drag_resource.capsule_radius = maxf(absf(local_mouse.x), 2.0)
+		DragMode.RESIZE_CAPSULE_HEIGHT:
+			var local_mouse := _to_hitbox_local(mouse, drag_resource)
+			drag_resource.capsule_height = maxf(absf(local_mouse.y) * 2.0, drag_resource.capsule_radius * 2.0)
+	drag_resource.emit_changed()
+
+func _to_hitbox_local(mouse: Vector2, hitbox: HitboxData) -> Vector2:
+	var center := actor_origin + hitbox.offset * view_scale
+	return ((mouse - center) / view_scale).rotated(-deg_to_rad(hitbox.rotation_degrees))
+
+func _pick_handle(mouse: Vector2) -> DragMode:
+	if selected_hitbox == null:
+		return DragMode.NONE
+	var local_mouse := _to_hitbox_local(mouse, selected_hitbox)
+	match selected_hitbox.shape_type:
+		HitboxData.ShapeType.RECTANGLE:
+			var half := selected_hitbox.rectangle_size * 0.5
+			var points := _rect_handle_points(half)
+			for point in points:
+				if local_mouse.distance_to(point) * view_scale <= HANDLE_PICK_RADIUS:
+					return DragMode.RESIZE_RECT
+		HitboxData.ShapeType.CIRCLE:
+			if absf(local_mouse.distance_to(Vector2(selected_hitbox.circle_radius, 0))) * view_scale <= HANDLE_PICK_RADIUS:
+				return DragMode.RESIZE_CIRCLE
+		HitboxData.ShapeType.CAPSULE:
+			var half := maxf((selected_hitbox.capsule_height - selected_hitbox.capsule_radius * 2.0) * 0.5, 0.0)
+			if local_mouse.distance_to(Vector2(selected_hitbox.capsule_radius, 0)) * view_scale <= HANDLE_PICK_RADIUS:
+				return DragMode.RESIZE_CAPSULE_RADIUS
+			if local_mouse.distance_to(Vector2(0, half + selected_hitbox.capsule_radius)) * view_scale <= HANDLE_PICK_RADIUS:
+				return DragMode.RESIZE_CAPSULE_HEIGHT
+	return DragMode.NONE
 
 func _pick(mouse: Vector2) -> HitboxData:
 	var candidates: Array[HitboxData] = []
@@ -208,20 +335,86 @@ func _pick(mouse: Vector2) -> HitboxData:
 					candidates.append(hitbox)
 
 	for i in range(candidates.size() - 1, -1, -1):
-		var h := candidates[i]
-		var p := ((mouse - actor_origin - h.offset * VIEW_SCALE) / VIEW_SCALE).rotated(-deg_to_rad(h.rotation_degrees))
-
-		match h.shape_type:
+		var hitbox := candidates[i]
+		var p := _to_hitbox_local(mouse, hitbox)
+		match hitbox.shape_type:
 			HitboxData.ShapeType.RECTANGLE:
-				if Rect2(-h.rectangle_size * 0.5, h.rectangle_size).has_point(p):
-					return h
+				if Rect2(-hitbox.rectangle_size * 0.5, hitbox.rectangle_size).has_point(p):
+					return hitbox
 			HitboxData.ShapeType.CIRCLE:
-				if p.length() <= h.circle_radius:
-					return h
+				if p.length() <= hitbox.circle_radius:
+					return hitbox
 			HitboxData.ShapeType.CAPSULE:
-				var half := maxf((h.capsule_height - h.capsule_radius * 2) * 0.5, 0)
+				var half := maxf((hitbox.capsule_height - hitbox.capsule_radius * 2.0) * 0.5, 0.0)
 				var nearest := clampf(p.y, -half, half)
-				if Vector2(p.x, p.y - nearest).length() <= h.capsule_radius:
-					return h
-
+				if Vector2(p.x, p.y - nearest).length() <= hitbox.capsule_radius:
+					return hitbox
 	return null
+
+func _zoom_at(mouse: Vector2, factor: float) -> void:
+	var old_scale := view_scale
+	var new_scale := clampf(old_scale * factor, MIN_SCALE, MAX_SCALE)
+	if is_equal_approx(old_scale, new_scale):
+		return
+	var base_origin := size * 0.5 + Vector2(-80, 0)
+	var world_under_mouse := (mouse - base_origin - view_pan) / old_scale
+	view_scale = new_scale
+	view_pan = mouse - base_origin - world_under_mouse * new_scale
+	queue_redraw()
+
+func _finish_edit() -> void:
+	if not drag_pending and not dragging:
+		_cancel_interaction()
+		return
+
+	var resource := drag_resource
+	var final_offset := resource.offset if is_instance_valid(resource) else drag_start_offset
+	var final_size := resource.rectangle_size if is_instance_valid(resource) else drag_start_size
+	var final_radius := resource.circle_radius if is_instance_valid(resource) and resource.shape_type == HitboxData.ShapeType.CIRCLE else (resource.capsule_radius if is_instance_valid(resource) else drag_start_radius)
+	var final_height := resource.capsule_height if is_instance_valid(resource) else drag_start_height
+
+	drag_mode = DragMode.NONE
+	drag_pending = false
+	dragging = false
+	drag_resource = null
+
+	if not is_instance_valid(resource):
+		queue_redraw()
+		return
+
+	if undo_redo != null:
+		var changed := false
+		undo_redo.create_action("编辑判定框")
+		if not final_offset.is_equal_approx(drag_start_offset):
+			undo_redo.add_do_property(resource, "offset", final_offset)
+			undo_redo.add_undo_property(resource, "offset", drag_start_offset)
+			changed = true
+		if resource.shape_type == HitboxData.ShapeType.RECTANGLE and not final_size.is_equal_approx(drag_start_size):
+			undo_redo.add_do_property(resource, "rectangle_size", final_size)
+			undo_redo.add_undo_property(resource, "rectangle_size", drag_start_size)
+			changed = true
+		elif resource.shape_type == HitboxData.ShapeType.CIRCLE and not is_equal_approx(final_radius, drag_start_radius):
+			undo_redo.add_do_property(resource, "circle_radius", final_radius)
+			undo_redo.add_undo_property(resource, "circle_radius", drag_start_radius)
+			changed = true
+		elif resource.shape_type == HitboxData.ShapeType.CAPSULE:
+			if not is_equal_approx(final_radius, drag_start_radius):
+				undo_redo.add_do_property(resource, "capsule_radius", final_radius)
+				undo_redo.add_undo_property(resource, "capsule_radius", drag_start_radius)
+				changed = true
+			if not is_equal_approx(final_height, drag_start_height):
+				undo_redo.add_do_property(resource, "capsule_height", final_height)
+				undo_redo.add_undo_property(resource, "capsule_height", drag_start_height)
+				changed = true
+		if changed:
+			undo_redo.commit_action()
+		else:
+			undo_redo.commit_action()
+	resource.emit_changed()
+	queue_redraw()
+
+func _cancel_interaction() -> void:
+	drag_mode = DragMode.NONE
+	drag_pending = false
+	dragging = false
+	drag_resource = null
