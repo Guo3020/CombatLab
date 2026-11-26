@@ -4,15 +4,6 @@
 [ext_resource type="Script" uid="uid://bj3diw4xg6hf0" path="res://03_scripts/01_combat/modules/combat_action_module.gd" id="1_dp7pd"]
 [ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="3_e80b7"]
 
-[sub_resource type="Resource" id="Resource_yhuu6"]
-script = ExtResource("2_38bnr")
-module_name = "第三段攻击判定"
-metadata/_custom_type_script = "uid://dgjymukq37tib"
-
-[sub_resource type="Resource" id="Resource_8x5yl"]
-script = ExtResource("3_w3ohk")
-metadata/_custom_type_script = "uid://d01ep54f0t2cy"
-
 [resource]
 script = ExtResource("3_e80b7")
 action_id = &"sword_combo_03"
@@ -21,5 +12,4 @@ startup = 0.5
 active = 0.5
 recovery = 0.4
 input_window = 0.0
-modules = Array[ExtResource("1_dp7pd")]([SubResource("Resource_yhuu6"), SubResource("Resource_8x5yl")])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"
