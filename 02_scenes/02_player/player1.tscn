@@ -13,9 +13,6 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_g1ohs"]
 size = Vector2(32, 64)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_r8brs"]
-size = Vector2(79.5, 40)
-
 [node name="player1" type="CharacterBody2D" unique_id=870416064 groups=["player"]]
 script = ExtResource("1_lxgi7")
 max_health = 1000.0
@@ -31,13 +28,6 @@ polygon = PackedVector2Array(-16, -32, -16, 32, 16, 32, 16, -32)
 [node name="Polygon2D" type="Polygon2D" parent="Polygon2D" unique_id=2036630971]
 color = Color(0.75964993, 0.18647459, 0.12079238, 1)
 polygon = PackedVector2Array(0, -32, 16, -32, 16, 32, 0, 32)
-
-[node name="AttackArea" type="Area2D" parent="." unique_id=500830967]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackArea" unique_id=1560877762]
-position = Vector2(-30.25, 0)
-rotation = 0.00014954491
-shape = SubResource("RectangleShape2D_r8brs")
 
 [node name="CombatActionExecutor" type="Node" parent="." unique_id=712624786]
 script = ExtResource("2_bosoa")
