@@ -13,12 +13,7 @@ func _init() -> void:
 			MovementModule.new()
 		]
 
-	# 新建 Action 时提供一套可直接编辑的最小命中结构。
-	if hit_instances.is_empty():
-		hit_instances = [
-			HitInstanceData.new()
-		]
-
+	
 
 # ==================================================
 # 基础信息
@@ -109,6 +104,31 @@ var input_buffer_enabled: bool = true
 # 功能模块
 # ==================================================
 
-@export_group("功能模块")
+@export_group("功能模块分组")
+
+@export var hit_module_enabled: bool = false:
+	set(value):
+		if hit_module_enabled == value:
+			return
+		hit_module_enabled = value
+		if hit_module_enabled:
+			ensure_hit_instance()
+		notify_property_list_changed()
+		emit_changed()
+
+@export_group("命中实例")
 @export var hit_instances: Array[HitInstanceData] = []
+
+@export_group("其他功能模块")
 @export var modules: Array[CombatActionModule] = []
+
+
+func ensure_hit_instance() -> void:
+	if hit_module_enabled and hit_instances.is_empty():
+		hit_instances.append(HitInstanceData.new())
+		emit_changed()
+
+
+func _validate_property(property: Dictionary) -> void:
+	if property.name == "hit_instances" and not hit_module_enabled:
+		property.usage = PROPERTY_USAGE_STORAGE
