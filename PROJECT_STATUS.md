@@ -71,7 +71,7 @@ This applies to Player attacks, skills, Enemy attacks, and Dash. Do not bypass t
 - Do not add a global frozen check to `start_action()`.
 
 ### Action-time ordinary movement restriction
-User accepted the current implementation temporarily:
+User reports this system is now essentially complete. It is not part of the current HitInstance migration task and should not be treated as an active to-do.
 - Ordinary directional movement does not run during an Action.
 - Direction input is still sampled for subsequent Actions/Jump.
 - Existing horizontal velocity is allowed to decay naturally.
