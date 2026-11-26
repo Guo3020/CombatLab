@@ -116,6 +116,7 @@ Exact property names/types must follow the actual script and Godot's supported S
 
 - HitInstance times are measured from the beginning of the Action's Active phase.
 - `start_time` and `end_time` define when the instance's hitboxes are enabled.
+- `HitModule` evaluates the overlap between the current Executor update interval and the HitInstance interval. This avoids waiting for an additional update after a time boundary is crossed. Actual Area2D overlap events remain quantized by Godot's physics ticks.
 - Multiple instances may have gaps between them.
 - The Action remains in the single Active phase across those gaps.
 - A HitInstance's multiple Hitboxes are enabled/disabled as one group.
