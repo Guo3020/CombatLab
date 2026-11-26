@@ -142,12 +142,6 @@ func _position_resize_grip() -> void:
 	if not is_instance_valid(resize_grip) or not is_instance_valid(tree_panel):
 		return
 	resize_grip.position = tree_panel.size - resize_grip.size - Vector2(3, 3)
-	resize_grip.queue_redraw()
-
-func _draw() -> void:
-	if is_instance_valid(resize_grip):
-		resize_grip.draw_line(Vector2(7, 15), Vector2(15, 7), Color(0.72, 0.78, 0.88, 0.9), 1.5)
-		resize_grip.draw_line(Vector2(11, 15), Vector2(15, 11), Color(0.72, 0.78, 0.88, 0.9), 1.5)
 
 func _process(_delta: float) -> void:
 	if panel_dragging:
