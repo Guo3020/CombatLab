@@ -4,12 +4,6 @@
 [ext_resource type="Script" uid="uid://bj3diw4xg6hf0" path="res://03_scripts/01_combat/modules/combat_action_module.gd" id="1_g2ga6"]
 [ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="4_16tlg"]
 
-[sub_resource type="Resource" id="Resource_2nvhp"]
-script = ExtResource("2_2uq7m")
-
-[sub_resource type="Resource" id="Resource_2ei68"]
-script = ExtResource("3_fmuku")
-
 [resource]
 script = ExtResource("4_16tlg")
 action_name = "受击"
@@ -18,5 +12,4 @@ active = 0.0
 recovery = 0.35
 input_window = 0.0
 action_priority = 10
-modules = Array[ExtResource("1_g2ga6")]([SubResource("Resource_2nvhp"), SubResource("Resource_2ei68")])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"
