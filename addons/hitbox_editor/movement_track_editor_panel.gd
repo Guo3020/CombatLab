@@ -105,7 +105,7 @@ class CurveGraph extends Control:
 		queue_redraw()
 
 	func set_value_range(value: float) -> void:
-		value_range = clampf(value, AXIS_RANGE_MIN, AXIS_RANGE_MAX)
+		value_range = clampf(value, 1.0, 1000000000.0)
 		queue_redraw()
 
 	func _curve_to_screen(point: Vector2) -> Vector2:
