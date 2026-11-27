@@ -16,7 +16,7 @@ hitboxes = Array[ExtResource("2_fs84i")]([SubResource("Resource_tehj2")])
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
 [resource]
-collision_mask = 4
+collision_mask = 8
 script = ExtResource("3_g6vsu")
 action_id = &"sword_combo_02"
 action_name = "第二段：反向斜斩"
