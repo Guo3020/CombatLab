@@ -130,6 +130,7 @@ var movement_track_original_collision_mask: int = -1
 var movement_track_collision_mask_modified: bool = false
 var movement_track_progress: float = 0.0
 var movement_track_displacement: Vector2 = Vector2.ZERO
+var movement_track_start_position: Vector2 = Vector2.ZERO
 
 
 # ==================================================
@@ -563,6 +564,8 @@ func receive_action_movement_request(
 	movement_end_velocity_settled = false
 
 	_reset_movement_runtime_state()
+	if requested_mode == MovementMode.MOVEMENT_TRACK and actor != null:
+		movement_track_start_position = actor.global_position
 	_apply_movement_track_collision_strategy(active_movement_request)
 
 	return true
@@ -1366,6 +1369,7 @@ func _reset_movement_runtime_state() -> void:
 
 	movement_track_progress = 0.0
 	movement_track_displacement = Vector2.ZERO
+	movement_track_start_position = Vector2.ZERO
 
 	dash_grounded_ultra_applied = false
 	dash_grounded_ultra_speed = 0.0
