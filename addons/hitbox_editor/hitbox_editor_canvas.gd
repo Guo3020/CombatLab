@@ -132,8 +132,8 @@ func _get_preview_actor_offset() -> Vector2:
 
 	var duration := maxf(movement.movement_track_duration, 0.01)
 	var progress := clampf(preview_time / duration, 0.0, 1.0)
-	# The editor preview faces right by default. Runtime X is mirrored
-	# from the facing direction captured by the Action; Y is authored up-positive.
+	# Match the facing direction of the Player in the edited scene.
+	# Runtime X uses the Action-start facing snapshot; Y is authored up-positive.
 	var facing_direction := _get_preview_facing_direction()
 	var start_offset := Vector2(
 		movement.movement_track_x.sample_baked(0.0) * facing_direction,
