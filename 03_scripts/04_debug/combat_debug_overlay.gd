@@ -83,6 +83,12 @@ func _ready() -> void:
 
 	# 获取 Enemy 的 AIController
 	if enemy != null:
+		if enemy.has_signal("debug_damage_number"):
+			enemy.connect(
+				"debug_damage_number",
+				_on_debug_damage_number
+			)
+
 		enemy_ai_controller = enemy.get_node_or_null(
 			"AIController"
 		) as EnemyAIController
