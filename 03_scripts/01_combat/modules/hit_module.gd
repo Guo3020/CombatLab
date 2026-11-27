@@ -220,6 +220,7 @@ func _write_debug_data(context: RefCounted) -> void:
 	context.runtime_data["hit_instance_runtime"] = debug_instances
 	context.runtime_data["hit_instance_count"] = debug_instances.size()
 	context.runtime_data["hit_instance_active_count"] = active_count
+	context.runtime_data["hit_instance_collision_mask"] = context.action_data.collision_mask
 	context.runtime_data["hit_module_enabled"] = true
 
 
@@ -250,6 +251,16 @@ func _on_body_entered(
 
 	if body == null or not is_instance_valid(body):
 		return
+
+	print(
+		"HitModule：检测到 Body Entered | 攻击者：", context.actor.name,
+		" | 目标：", body.name,
+		" | Phase：", context.current_phase,
+		" | Instance Enabled：", runtime_state.get("enabled", false),
+		" | Monitoring：", runtime_area.monitoring,
+		" | Mask：", runtime_area.collision_mask,
+		" | Target Layer：", body.collision_layer
+	)
 
 	if body == context.actor:
 		return
@@ -297,11 +308,10 @@ func _on_body_entered(
 			body
 		)
 
-		if (
-			context.actor != null
-			and context.actor.has_signal("debug_damage_number")
-		):
-			context.actor.emit_signal(
+		# 伤害数字属于受击目标，而不是攻击者。
+		# 这样 Player 受到 Enemy 攻击时，也能由 DebugOverlay 显示数字。
+		if body.has_signal("debug_damage_number"):
+			body.emit_signal(
 				"debug_damage_number",
 				body.global_position,
 				hit_instance.damage
@@ -380,6 +390,7 @@ func on_module_end(context: RefCounted) -> void:
 		context.runtime_data.erase("hit_instance_runtime")
 		context.runtime_data.erase("hit_instance_count")
 		context.runtime_data.erase("hit_instance_active_count")
+		context.runtime_data.erase("hit_instance_collision_mask")
 		context.runtime_data["hit_module_enabled"] = false
 
 	print("HitModule：模块结束")
