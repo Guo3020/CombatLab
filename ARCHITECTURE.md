@@ -87,10 +87,11 @@ Modules that use phase ranges must continue to refer to these three Action phase
 
 ### 6.1 Data model
 
-`CombatActionData` owns an explicit `hit_module_enabled` toggle and an exported HitInstance array.
+`CombatActionData` owns an explicit `hit_module_enabled` toggle, a shared `collision_mask`, and an exported HitInstance array.
 
 - `hit_module_enabled` is the only switch that controls whether HitModule runs.
 - `hit_instances` is shown in the Inspector only while the toggle is enabled.
+- `collision_mask` is configured once per Action and shared by every HitInstance. It is shown only while the HitInstance array contains at least one entry.
 - Disabling HitModule hides the array but preserves all configured HitInstance data.
 - Re-enabling it restores the previous data. If the array is empty, one default HitInstance is created automatically.
 - The Executor must not infer enablement from whether the array happens to contain data.
@@ -100,7 +101,6 @@ Modules that use phase ranges must continue to refer to these three Action phase
 - `end_time`
 - `damage`
 - `hitboxes: Array[HitboxData]`
-- `collision_mask` (runtime Area2D collision mask)
 - `hitstop_enabled`
 - `attacker_time_freeze_duration`
 - `target_time_freeze_duration`
@@ -145,8 +145,9 @@ Collision layer convention:
 - Layer 3: Enemy
 - Player CharacterBody2D: Layer 2, Mask 1 (World)
 - Enemy CharacterBody2D: Layer 3, Mask 1 (World)
-- Player HitInstance: Mask 3 (Enemy)
-- Enemy HitInstance: Mask 2 (Player)
+- Player CombatActionData: Mask 4 (Enemy Layer 3)
+- Enemy CombatActionData: Mask 2 (Player Layer 2)
+- All HitInstance Areas created by the same Action use that ActionData's shared mask.
 
 For each HitInstance:
 - Keep an independent set of targets already hit.
