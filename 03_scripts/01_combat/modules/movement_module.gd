@@ -102,6 +102,9 @@ func _validate_property(property: Dictionary) -> void:
 	if property_name in movement_track_properties and not is_movement_track_mode:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
 
+	if property_name == &"stabilization_enabled" and is_movement_track_mode:
+		property.usage = PROPERTY_USAGE_NO_EDITOR
+
 	if property_name in [&"end_velocity_mode", &"end_speed"]:
 		if not is_dash_mode and not is_override_mode:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
@@ -130,7 +133,9 @@ func _validate_property(property: Dictionary) -> void:
 	)
 
 	if is_stabilization_config_property:
-		if not is_stabilization_enabled:
+		if is_movement_track_mode:
+			property.usage = PROPERTY_USAGE_NO_EDITOR
+		elif not is_stabilization_enabled:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 
 		elif stabilization_activation_mode == StabilizationActivationMode.PHASE_RANGE:
