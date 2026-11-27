@@ -108,6 +108,9 @@ func _get_preview_actor_offset() -> Vector2:
 	if movement == null:
 		return Vector2.ZERO
 
+	if movement.movement_track_x == null or movement.movement_track_y == null:
+		return Vector2.ZERO
+
 	var duration := maxf(movement.movement_track_duration, 0.01)
 	var progress := clampf(preview_time / duration, 0.0, 1.0)
 	var start_offset := Vector2(
@@ -198,6 +201,9 @@ func _draw_actor() -> void:
 func _draw_movement_track_path() -> void:
 	var movement := _get_movement_track_module()
 	if movement == null:
+		return
+
+	if movement.movement_track_x == null or movement.movement_track_y == null:
 		return
 
 	var points := PackedVector2Array()
