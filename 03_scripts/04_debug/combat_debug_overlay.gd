@@ -395,11 +395,17 @@ func _draw_movement_track_path() -> void:
 	if points.size() >= 2:
 		draw_polyline(points, Color(0.35, 0.95, 0.75, 0.9), 2.0)
 
-	var current_position := _world_to_screen(
+	var planned_position := _world_to_screen(
 		controller.movement_track_start_position
 		+ controller.movement_track_displacement
 	)
-	draw_circle(current_position, 4.0, Color(0.35, 1.0, 0.8))
+	var actual_position := _world_to_screen(player.global_position)
+
+	draw_circle(planned_position, 4.0, Color(0.35, 1.0, 0.8))
+	draw_circle(actual_position, 5.0, Color(0.95, 0.95, 1.0))
+
+	if planned_position.distance_to(actual_position) > 2.0:
+		draw_line(planned_position, actual_position, Color(1.0, 0.75, 0.25, 0.9), 2.0)
 
 
 # ==================================================
