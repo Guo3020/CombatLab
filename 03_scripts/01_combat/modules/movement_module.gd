@@ -270,6 +270,9 @@ func _initialize_flat_track_curve(curve: Curve) -> void:
 	if curve == null:
 		return
 
+	if curve.resource_name.is_empty():
+		curve.resource_name = "MovementTrack Curve"
+
 	if curve.get_point_count() == 0:
 		curve.add_point(Vector2(0.0, 0.0))
 		curve.add_point(Vector2(1.0, 0.0))
