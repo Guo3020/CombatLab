@@ -274,12 +274,10 @@ func _refresh() -> void:
 	if movement == null:
 		return
 	if movement.movement_track_x != null:
-		movement.movement_track_x.resource_name = "MovementTrack X Curve"
 		movement.movement_track_x.bake_resolution = 8
 		if not movement.movement_track_x.changed.is_connected(_refresh):
 			movement.movement_track_x.changed.connect(_refresh)
 	if movement.movement_track_y != null:
-		movement.movement_track_y.resource_name = "MovementTrack Y Curve"
 		movement.movement_track_y.bake_resolution = 8
 		if not movement.movement_track_y.changed.is_connected(_refresh):
 			movement.movement_track_y.changed.connect(_refresh)
@@ -289,8 +287,6 @@ func _refresh() -> void:
 	collision_option.select(int(movement.movement_track_collision_strategy))
 	x_graph.set_curve(movement.movement_track_x, movement.movement_track_duration, x_graph.value_range)
 	y_graph.set_curve(movement.movement_track_y, movement.movement_track_duration, y_graph.value_range)
-
-
 func _on_duration_changed(value: float) -> void:
 	if movement == null:
 		return

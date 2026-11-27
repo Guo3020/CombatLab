@@ -33,6 +33,7 @@ point_count = 2
 
 [sub_resource type="Resource" id="Resource_pfusb"]
 script = ExtResource("4_4ikgc")
+movement_mode = 1
 stabilization_enabled = false
 stabilization_speed = 1000.0
 movement_track_x = SubResource("Curve_4ikgc")
