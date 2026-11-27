@@ -39,7 +39,7 @@ func on_module_start(context: RefCounted) -> void:
 		var runtime_area := Area2D.new()
 		runtime_area.name = "HitInstance_%d" % index
 		runtime_area.collision_layer = 0
-		runtime_area.collision_mask = hit_instance.collision_mask
+		runtime_area.collision_mask = context.action_data.collision_mask
 		runtime_area.monitoring = false
 		runtime_area.monitorable = false
 
