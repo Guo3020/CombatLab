@@ -1,6 +1,6 @@
 # CombatLab — Project Status
 
-> Last updated: 2026-11-27  
+> Last updated: 2026-11-27 (debug cleanup)  
 > Project: Godot 2D side-view action-combat prototype  
 > Status source: current GitHub `main` plus user-confirmed test results. The HitInstance migration branch described below is not merged or locally tested yet.
 
@@ -24,7 +24,7 @@ The following changes have been prepared on the migration branch but have **not 
 - Hitboxes within each HitInstance receive related but slightly varied editor colors.
 - HitInstance and individual Hitbox rows have independent eye-button visibility toggles; hidden Hitboxes are omitted from drawing and picking only, with no runtime collision setting changed.
 - Damage debug numbers are now emitted by the hit target rather than the attacker, so incoming Enemy damage can appear over Player. Enemy targets also expose the same debug signal.
-- HitModule logs Body Entered contact details (attacker, target, phase, runtime enabled state, Area2D monitoring, collision mask, and target collision layer) to help isolate missing Enemy-to-Player hits.
+- Temporary HitModule contact/diagnostic prints and Overlay visibility prints have been removed after Enemy-to-Player damage feedback was restored. Damage debug numbers are emitted directly by `Player1.take_damage()` / `EnemyBase.take_damage()`.
 - These new Hit Editor controls are committed but have not yet been run in Godot 4.7.2; local validation is still required.
 - One runtime `Area2D` is created per HitInstance, with one `CollisionShape2D` per Hitbox.
 - Hitboxes in one HitInstance share one target-hit record; different HitInstances have independent records.
@@ -159,11 +159,11 @@ The exact fields and shape construction must be checked against the actual `hitb
 ## 6. Immediate next steps
 
 1. Review the migration PR and synchronize the local project when ready to test.
-2. Open the project in Godot 4.7.2 and confirm there are no script parse errors, missing resources, or invalid `.tres` references.
+2. Open the project in Godot 4.7.2 and confirm there are no script parse errors, unused signal/parameter warnings, missing resources, or invalid `.tres` references. Confirm Enemy Action resources do not contain an unnecessary `MovementModule`.
 3. Verify left/right Hitbox mirroring for rectangle, circle, and capsule shapes.
 4. Verify HitInstance start/end timing, including boundaries that fall between frame timestamps.
 5. Verify per-instance target deduplication, later-instance re-hits, Hitstop, and Action cancellation cleanup.
-6. Verify the DebugOverlay displays actual runtime Hitboxes and HitInstance timing for both Player and Enemy.
+6. Verify the DebugOverlay displays actual runtime Hitboxes and HitInstance timing for both Player and Enemy, and that damage numbers appear for incoming and outgoing hits without diagnostic print spam.
 7. In Hit Editor, test Hitbox layer ordering / topmost selection, Undo/Redo, per-Hitbox color variation, and independent HitInstance / Hitbox visibility toggles.
 8. Only after these checks pass, mark the migration and editor updates complete and continue to the next combat-system feature.
 
