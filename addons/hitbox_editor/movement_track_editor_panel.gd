@@ -97,7 +97,7 @@ class CurveGraph extends Control:
 		queue_redraw()
 
 	func set_value_range(value: float) -> void:
-		value_range = clampf(value, 1.0, 100000.0)
+		value_range = clampf(value, 1.0, 1000000000.0)
 		queue_redraw()
 
 	func _curve_to_screen(point: Vector2) -> Vector2:
@@ -251,7 +251,7 @@ func _ready() -> void:
 	duration_row.add_theme_constant_override("separation", 4)
 	duration_spin = SpinBox.new()
 	duration_spin.min_value = 0.01
-	duration_spin.max_value = 100000.0
+	duration_spin.max_value = DURATION_MAX
 	duration_spin.step = 0.01
 	duration_spin.custom_minimum_size.x = 0.0
 	duration_spin.value = 0.2
@@ -282,7 +282,7 @@ func _ready() -> void:
 
 	number_spin = SpinBox.new()
 	number_spin.min_value = 0.01
-	number_spin.max_value = 100000.0
+	number_spin.max_value = DURATION_MAX
 	number_spin.step = 0.01
 	number_spin.custom_minimum_size.x = 0.0
 	number_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -408,7 +408,7 @@ func _on_duration_axis_pressed() -> void:
 	if movement == null:
 		return
 	_open_number_dialog("时间范围（秒）", movement.movement_track_duration, 0.01, 100000.0, func(value: float) -> void:
-		duration_spin.value = value
+		duration_spin.set_value_no_signal(value)
 		_on_duration_changed(value)
 	)
 
