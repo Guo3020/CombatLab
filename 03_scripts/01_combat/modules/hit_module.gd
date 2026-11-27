@@ -252,8 +252,12 @@ func _on_body_entered(
 	if body == null or not is_instance_valid(body):
 		return
 
+	var attacker_name: String = "<无效攻击者>"
+	if is_instance_valid(context.actor):
+		attacker_name = context.actor.name
+
 	print(
-		"HitModule：检测到 Body Entered | 攻击者：", context.actor.name,
+		"HitModule：检测到 Body Entered | 攻击者：", attacker_name,
 		" | 目标：", body.name,
 		" | Phase：", context.current_phase,
 		" | Instance Enabled：", runtime_state.get("enabled", false),
