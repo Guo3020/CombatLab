@@ -15,6 +15,8 @@ const AXIS_RANGE_MAX := 1000000000.0
 
 var movement: MovementModule
 var scroll: ScrollContainer
+var content: VBoxContainer
+var empty_state: Label
 var root_layout: VBoxContainer
 var overlay: Control
 var duration_axis_buttons: Array[Button] = []
@@ -203,7 +205,7 @@ class CurveGraph extends Control:
 
 
 func _ready() -> void:
-	visible = false
+	visible = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	custom_minimum_size = Vector2(280.0, 300.0)
 	size = Vector2(PANEL_WIDTH, 430)
@@ -232,6 +234,14 @@ func _ready() -> void:
 	header.mouse_default_cursor_shape = Control.CURSOR_MOVE
 	header.gui_input.connect(_on_header_input)
 	root_layout.add_child(header)
+
+	empty_state = Label.new()
+	empty_state.text = "当前 Action 没有启用 MovementTrack。"
+	empty_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	empty_state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	empty_state.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root_layout.add_child(empty_state)
+
 	var title := Label.new()
 	title.text = "MovementTrack"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -247,7 +257,8 @@ func _ready() -> void:
 	scroll.custom_minimum_size = Vector2.ZERO
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root_layout.add_child(scroll)
-	var content := VBoxContainer.new()
+	scroll.visible = false
+	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.custom_minimum_size.x = 0.0
 	content.add_theme_constant_override("separation", 6)
@@ -352,13 +363,17 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 
 
 func set_movement(value: MovementModule) -> void:
-	visible = value != null
+	visible = true
 	if movement == value:
+		_refresh()
 		return
 	if movement != null and movement.changed.is_connected(_refresh):
 		movement.changed.disconnect(_refresh)
 	movement = value
-	if not is_node_ready() or movement == null:
+	if not is_node_ready():
+		return
+	if movement == null:
+		_refresh()
 		return
 	if not movement.changed.is_connected(_refresh):
 		movement.changed.connect(_refresh)
@@ -370,7 +385,10 @@ func set_movement(value: MovementModule) -> void:
 
 
 func _refresh() -> void:
-	if movement == null:
+	var has_movement := movement != null
+	empty_state.visible = not has_movement
+	scroll.visible = has_movement
+	if not has_movement:
 		return
 	if movement.movement_track_x != null:
 		movement.movement_track_x.resource_name = "MovementTrack X Curve"
