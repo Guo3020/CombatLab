@@ -700,6 +700,8 @@ func _draw_movement_info() -> void:
 		"velocity_override_enabled",
 		false
 	)
+	if movement_track_active:
+		override_enabled = false
 
 	var override_active: bool = movement_debug.get(
 		"velocity_override_active",
