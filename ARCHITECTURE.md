@@ -250,7 +250,7 @@ Collision layer convention:
 - Layer 3: Player.
 - Layer 4: Enemy.
 - A map collider may belong to both Layer 1 and Layer 2; Layer 1 membership takes precedence for IGNORE_WORLD and keeps it collidable.
-- The arena's existing ground/platform body uses Layer 2; its bottom fall guard uses Layer 1.
+- The arena's existing ground/platform body uses Layer 2; its bottom fall guard and left/right map-edge guards use Layer 1.
 
 Combat timing uses a fixed 60 Hz physics tick. Runtime Action timing remains seconds; Hit Editor authors and scrubs on a 60 FPS frame ruler through the shared CombatTimebase conversion. Rendering FPS is independent of the physics tick rate.
 
