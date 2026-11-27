@@ -237,6 +237,37 @@ var override_speed: float = 240.0
 
 
 # ==================================================
+# MovementTrack 配置
+# ==================================================
+
+@export_group("MovementTrack")
+
+@export_range(0.01, 5.0, 0.01)
+var movement_track_duration: float = 0.2
+
+@export var movement_track_x: Curve = Curve.new()
+
+@export var movement_track_y: Curve = Curve.new()
+
+@export var movement_track_collision_strategy: MovementCollisionStrategy = MovementCollisionStrategy.BLOCK
+
+
+func _init() -> void:
+	_initialize_flat_track_curve(movement_track_x)
+	_initialize_flat_track_curve(movement_track_y)
+
+
+func _initialize_flat_track_curve(curve: Curve) -> void:
+	if curve == null or curve.get_point_count() < 2:
+		return
+
+	curve.min_value = -1000.0
+	curve.max_value = 1000.0
+	curve.set_point_value(0, 0.0)
+	curve.set_point_value(curve.get_point_count() - 1, 0.0)
+
+
+# ==================================================
 # 模块接口
 # ==================================================
 
