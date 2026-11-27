@@ -194,7 +194,38 @@ Do not add a blanket frozen check to `CombatActionExecutor.start_action()`.
 
 ## 9. Movement architecture
 
-`PlayerMovementController` is the single authority for Player1 movement, jump, gravity, Dash, Stabilization, crouch/duck behavior, and future movement tracks. Player1 calls `move_and_slide()`.
+### 9.1 Actor-specific controllers
+
+- `PlayerMovementController` remains the actual authority for Player1 movement, jump, gravity, Dash, Stabilization, crouch/duck behavior, and future movement tracks. Player1 owns physics and calls `move_and_slide()`.
+- `EnemyMovementController` remains the actual authority for current Enemy AI locomotion. Action-driven enemy movement is not implemented yet.
+- These controllers are not wrapped by a third shared controller. Each Actor exposes its own request receiver through `movement_request_handler`.
+
+### 9.2 Shared Action Movement request contract
+
+GDScript does not provide interface/multiple inheritance in the same way as languages with formal interface types. `CombatMovementInterface` therefore defines a shared method contract and dispatch helper (duck-typed), not a runtime movement controller or a required common superclass.
+
+The contract currently contains:
+- `receive_action_movement_request(source_id, request) -> bool`
+- `notify_movement_action_finished(source_id, end_reason) -> void`
+- Shared `MovementEndReason` values: `COMPLETED`, `CANCELLED`, `REPLACED`, `JUMP_INTERRUPTED`
+
+Runtime flow:
+
+```text
+CombatActionData
+  -> MovementModule
+  -> CombatActionContext.actor
+  -> actor.movement_request_handler
+  -> PlayerMovementController OR EnemyMovementController
+```
+
+- `MovementModule` only submits a request and sends lifecycle completion.
+- The Actor provides `movement_request_handler`; it does not inspect Player/Enemy groups.
+- Player and Enemy keep independent controller implementations.
+- `EnemyMovementController` currently implements no-op contract methods that accept and discard Action Movement requests. This prevents unsupported enemy Action Movement modules from producing warnings while leaving AI movement unchanged.
+- If a future Actor exposes an object that does not implement the contract, `MovementModule` reports the configuration problem instead of attempting an invalid cast.
+
+### 9.3 Movement responsibilities
 
 `MovementModule` remains responsible for Action-driven movement configuration and lifecycle:
 - `DASH`

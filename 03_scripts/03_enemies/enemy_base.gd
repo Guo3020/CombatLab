@@ -33,6 +33,12 @@ var current_health: float = 0.0
 var is_dead: bool = false
 
 @onready var movement_controller: EnemyMovementController = $MovementController
+
+# MovementModule 使用的统一请求入口；实际控制器仍由 EnemyMovementController 承担。
+var movement_request_handler: Object:
+	get:
+		return movement_controller
+
 @onready var combat_action_executor: CombatActionExecutor = $CombatActionExecutor
 @onready var combat_combo_executor: CombatComboExecutor = $CombatComboExecutor
 @onready var defense_controller: DefenseController = $DefenseController

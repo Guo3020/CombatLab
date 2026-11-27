@@ -159,7 +159,7 @@ The exact fields and shape construction must be checked against the actual `hitb
 ## 6. Immediate next steps
 
 1. Review the migration PR and synchronize the local project when ready to test.
-2. Open the project in Godot 4.7.2 and confirm there are no script parse errors, unused signal/parameter warnings, missing resources, or invalid `.tres` references. Confirm Enemy Action resources do not contain an unnecessary `MovementModule`.
+2. Open the project in Godot 4.7.2 and confirm there are no script parse errors, unused signal/parameter warnings, missing resources, or invalid `.tres` references. Confirm Player and Enemy expose `movement_request_handler`; Enemy Action Movement requests should be accepted as no-ops without changing AI locomotion.
 3. Verify left/right Hitbox mirroring for rectangle, circle, and capsule shapes.
 4. Verify HitInstance start/end timing, including boundaries that fall between frame timestamps.
 5. Verify per-instance target deduplication, later-instance re-hits, Hitstop, and Action cancellation cleanup.
@@ -176,3 +176,12 @@ The exact fields and shape construction must be checked against the actual `hitb
 - Avoid unused variables, speculative fields, and unnecessary abstraction.
 - Do not guess current source code: use the latest files the user provides.
 - Do not add art or generate images unless explicitly requested.
+
+
+## 8. Shared Movement Request Interface (2026-11-27)
+
+- Added the `CombatMovementInterface` request contract and shared Action end-reason enum.
+- `MovementModule` now resolves `Actor.movement_request_handler` and no longer casts to `PlayerMovementController`.
+- Player1 exposes its existing `PlayerMovementController` through `movement_request_handler`; player movement behavior is unchanged.
+- EnemyBase exposes its existing `EnemyMovementController` through the same property. The enemy controller implements no-op request/lifecycle methods only; AI locomotion is unchanged and Action-driven enemy movement remains unimplemented.
+- Godot runtime validation is still pending; this change has been statically reviewed only.

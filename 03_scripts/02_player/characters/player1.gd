@@ -109,6 +109,11 @@ var facing_direction: float = 1.0
 
 var movement_controller: PlayerMovementController
 
+# MovementModule 使用的统一请求入口；实际控制器仍由 PlayerMovementController 承担。
+var movement_request_handler: Object:
+	get:
+		return movement_controller
+
 
 @onready var combat_action_executor: CombatActionExecutor = $CombatActionExecutor
 @onready var combat_combo_executor: CombatComboExecutor = $CombatComboExecutor

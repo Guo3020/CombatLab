@@ -6,31 +6,6 @@ class_name PlayerMovementController
 # 枚举
 # ==================================================
 
-enum MovementEndReason {
-	COMPLETED,
-	CANCELLED,
-	REPLACED,
-	JUMP_INTERRUPTED
-}
-
-enum MovementMode {
-	NONE,
-	DASH,
-	VELOCITY_OVERRIDE
-}
-
-enum PhaseMode {
-	SPEED_PROTECTION,
-	LINEAR_INTERPOLATION,
-	DIRECT_SET
-}
-
-enum EndVelocityMode {
-	PRESERVE_CURRENT,
-	SET_SPEED
-}
-
-
 # ==================================================
 # 基础移动
 # ==================================================
@@ -261,7 +236,7 @@ func apply_jump(
 
 	if has_action_movement():
 		_finish_active_movement(
-			MovementEndReason.JUMP_INTERRUPTED
+			CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED
 		)
 
 	is_duck_sliding = false
@@ -325,7 +300,7 @@ func apply_super_jump(
 
 	if has_action_movement():
 		_finish_active_movement(
-			MovementEndReason.JUMP_INTERRUPTED
+			CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED
 		)
 
 	is_duck_sliding = false
@@ -374,7 +349,7 @@ func apply_hyper_jump(
 
 	if has_action_movement():
 		_finish_active_movement(
-			MovementEndReason.JUMP_INTERRUPTED
+			CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED
 		)
 
 	is_duck_sliding = false
@@ -542,7 +517,7 @@ func receive_action_movement_request(
 
 	if has_action_movement():
 		_finish_active_movement(
-			MovementEndReason.REPLACED
+			CombatMovementInterface.MovementEndReason.REPLACED
 		)
 
 	# 新的 Movement 接管时，结束旧 Duck 滑行。
@@ -564,7 +539,7 @@ func receive_action_movement_request(
 
 func notify_movement_action_finished(
 	source_id: StringName,
-	end_reason: MovementEndReason
+	end_reason: CombatMovementInterface.MovementEndReason
 ) -> void:
 
 	if source_id != active_movement_source_id:
@@ -572,7 +547,7 @@ func notify_movement_action_finished(
 
 	match end_reason:
 
-		MovementEndReason.COMPLETED:
+		CombatMovementInterface.MovementEndReason.COMPLETED:
 			if int(
 				active_movement_request.get(
 					"movement_mode",
@@ -580,22 +555,22 @@ func notify_movement_action_finished(
 				)
 			) == MovementMode.NONE:
 				_finish_active_movement(
-					MovementEndReason.COMPLETED
+					CombatMovementInterface.MovementEndReason.COMPLETED
 				)
 
-		MovementEndReason.CANCELLED:
+		CombatMovementInterface.MovementEndReason.CANCELLED:
 			_finish_active_movement(
-				MovementEndReason.CANCELLED
+				CombatMovementInterface.MovementEndReason.CANCELLED
 			)
 
-		MovementEndReason.REPLACED:
+		CombatMovementInterface.MovementEndReason.REPLACED:
 			_finish_active_movement(
-				MovementEndReason.REPLACED
+				CombatMovementInterface.MovementEndReason.REPLACED
 			)
 
-		MovementEndReason.JUMP_INTERRUPTED:
+		CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED:
 			_finish_active_movement(
-				MovementEndReason.JUMP_INTERRUPTED
+				CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED
 			)
 
 
@@ -609,7 +584,7 @@ func finish_action_movement(source_id: StringName) -> void:
 		return
 
 	_finish_active_movement(
-		MovementEndReason.COMPLETED
+		CombatMovementInterface.MovementEndReason.COMPLETED
 	)
 
 
@@ -618,15 +593,15 @@ func finish_action_movement(source_id: StringName) -> void:
 # ==================================================
 
 func _finish_active_movement(
-	end_reason: MovementEndReason
+	end_reason: CombatMovementInterface.MovementEndReason
 ) -> void:
 
 	if not has_action_movement():
 		return
 
 	if (
-		end_reason == MovementEndReason.COMPLETED
-		or end_reason == MovementEndReason.REPLACED
+		end_reason == CombatMovementInterface.MovementEndReason.COMPLETED
+		or end_reason == CombatMovementInterface.MovementEndReason.REPLACED
 	):
 		_apply_movement_end_velocity_once()
 

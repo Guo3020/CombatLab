@@ -332,16 +332,17 @@ func on_module_start(context: RefCounted) -> void:
 	# NONE 也可能包含 Stabilization 等 Movement 行为。
 	# 只要加载并启动了 MovementModule，就提交请求。
 
-	var movement_controller := action_context.actor.get(
-		"movement_controller"
-	) as PlayerMovementController
+	var movement_handler: Object = action_context.actor.get(
+		"movement_request_handler"
+	) as Object
 
-	if movement_controller == null:
+	if not CombatMovementInterface.supports(movement_handler):
 		push_warning(
-			"MovementModule: 无法获取 PlayerMovementController，Movement 请求未提交。"
+			"MovementModule: Actor 的 movement_request_handler 未实现 CombatMovementInterface，Movement 请求未提交。"
 		)
 	else:
-		var accepted := movement_controller.receive_action_movement_request(
+		var accepted := CombatMovementInterface.receive_action_movement_request(
+			movement_handler,
 			movement_source_id,
 			movement_request
 		)
@@ -368,7 +369,7 @@ func on_module_start(context: RefCounted) -> void:
 
 		else:
 			push_warning(
-				"MovementModule: PlayerMovementController 拒绝了 Movement 请求。"
+				"MovementModule: movement_request_handler 拒绝了 Movement 请求。"
 			)
 
 	action_context.runtime_data["movement_request"] = movement_request
@@ -405,11 +406,11 @@ func on_module_end(context: RefCounted) -> void:
 		movement_source_id != &""
 		and is_instance_valid(action_context.actor)
 	):
-		var movement_controller := action_context.actor.get(
-			"movement_controller"
-		) as PlayerMovementController
+		var movement_handler: Object = action_context.actor.get(
+			"movement_request_handler"
+		) as Object
 
-		if movement_controller != null:
+		if CombatMovementInterface.supports(movement_handler):
 			var action_end_reason: StringName = StringName(
 				action_context.runtime_data.get(
 					"action_end_reason",
@@ -417,26 +418,27 @@ func on_module_end(context: RefCounted) -> void:
 				)
 			)
 
-			var movement_end_reason: PlayerMovementController.MovementEndReason
+			var movement_end_reason: CombatMovementInterface.MovementEndReason
 
 			match action_end_reason:
 				&"completed":
-					movement_end_reason = PlayerMovementController.MovementEndReason.COMPLETED
+					movement_end_reason = CombatMovementInterface.MovementEndReason.COMPLETED
 
 				&"replaced":
-					movement_end_reason = PlayerMovementController.MovementEndReason.REPLACED
+					movement_end_reason = CombatMovementInterface.MovementEndReason.REPLACED
 
 				&"cancelled":
-					movement_end_reason = PlayerMovementController.MovementEndReason.CANCELLED
+					movement_end_reason = CombatMovementInterface.MovementEndReason.CANCELLED
 
 				_:
 					push_warning(
 						"MovementModule: 未知的 Action 结束原因：%s，按取消处理。"
 						% action_end_reason
 					)
-					movement_end_reason = PlayerMovementController.MovementEndReason.CANCELLED
+					movement_end_reason = CombatMovementInterface.MovementEndReason.CANCELLED
 
-			movement_controller.notify_movement_action_finished(
+			CombatMovementInterface.notify_movement_action_finished(
+				movement_handler,
 				movement_source_id,
 				movement_end_reason
 			)
