@@ -87,10 +87,6 @@ func on_module_start(context: RefCounted) -> void:
 
 	_write_debug_data(context)
 
-	print(
-		"HitModule：启动，HitInstance 数量：",
-		hit_instance_runtime.size()
-	)
 
 
 # ==================================================
@@ -252,19 +248,6 @@ func _on_body_entered(
 	if body == null or not is_instance_valid(body):
 		return
 
-	var attacker_name: String = "<无效攻击者>"
-	if is_instance_valid(context.actor):
-		attacker_name = context.actor.name
-
-	print(
-		"HitModule：检测到 Body Entered | 攻击者：", attacker_name,
-		" | 目标：", body.name,
-		" | Phase：", context.current_phase,
-		" | Instance Enabled：", runtime_state.get("enabled", false),
-		" | Monitoring：", runtime_area.monitoring,
-		" | Mask：", runtime_area.collision_mask,
-		" | Target Layer：", body.get("collision_layer")
-	)
 
 	if body == context.actor:
 		return
@@ -293,9 +276,7 @@ func _on_body_entered(
 	if hit_result == DefenseController.HitResult.INVINCIBLE:
 		if target_defense.should_trigger_time_slow_on_success():
 			CombatTimeManager.trigger_successful_dodge_time_slow()
-			print("HitModule：成功闪避，触发全局时缓")
 		else:
-			print("HitModule：目标处于无敌状态，攻击无效")
 
 		return
 
@@ -312,25 +293,9 @@ func _on_body_entered(
 			body
 		)
 
-		# 伤害数字属于受击目标，而不是攻击者。
-		# 这样 Player 受到 Enemy 攻击时，也能由 DebugOverlay 显示数字。
-		if body.has_signal("debug_damage_number"):
-			body.emit_signal(
-				"debug_damage_number",
-				body.global_position,
-				hit_instance.damage
-			)
-
-		print(
-			"HitModule：正常命中 ",
-			body.name,
-			" | 伤害：",
-			hit_instance.damage
-		)
 
 	# 免伤。
 	elif hit_result == DefenseController.HitResult.IMMUNE:
-		print("HitModule：目标处于免伤状态，未造成伤害")
 
 	# 正常命中和免伤都会触发本次 HitInstance 的 Hitstop。
 	_apply_hitstop(context, hit_instance)
@@ -397,4 +362,3 @@ func on_module_end(context: RefCounted) -> void:
 		context.runtime_data.erase("hit_instance_collision_mask")
 		context.runtime_data["hit_module_enabled"] = false
 
-	print("HitModule：模块结束")
