@@ -87,10 +87,8 @@ func _validate_property(property: Dictionary) -> void:
 	]
 
 	var movement_track_properties: Array[StringName] = [
-		&"movement_track_duration",
 		&"movement_track_x",
-		&"movement_track_y",
-		&"movement_track_collision_strategy"
+		&"movement_track_y"
 	]
 
 	if property_name in dash_properties and not is_dash_mode:
@@ -101,6 +99,10 @@ func _validate_property(property: Dictionary) -> void:
 
 	if property_name in movement_track_properties and not is_movement_track_mode:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
+
+	# Duration and collision strategy are configured in the Hit Editor panel.
+	if property_name in [&"movement_track_duration", &"movement_track_collision_strategy"] and is_movement_track_mode:
+		property.usage = PROPERTY_USAGE_STORAGE
 
 	if property_name == &"stabilization_enabled" and is_movement_track_mode:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
@@ -281,6 +283,7 @@ func _initialize_flat_track_curve(curve: Curve) -> void:
 
 	curve.min_value = -1000.0
 	curve.max_value = 1000.0
+	curve.bake_resolution = 8
 
 
 # ==================================================
@@ -362,6 +365,7 @@ func on_module_start(context: RefCounted) -> void:
 	elif movement_mode == MovementMode.MOVEMENT_TRACK:
 		movement_request.merge({
 			"movement_track_duration": movement_track_duration,
+			"movement_track_facing_direction": action_context.facing_direction,
 			"movement_track_x": movement_track_x,
 			"movement_track_y": movement_track_y,
 			"movement_track_collision_strategy": movement_track_collision_strategy
