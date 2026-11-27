@@ -591,7 +591,12 @@ func notify_movement_action_finished(
 					"movement_mode",
 					MovementMode.NONE
 				)
-			) == MovementMode.NONE:
+			) == MovementMode.NONE or int(
+				active_movement_request.get(
+					"movement_mode",
+					MovementMode.NONE
+				)
+			) == MovementMode.MOVEMENT_TRACK:
 				_finish_active_movement(
 					CombatMovementInterface.MovementEndReason.COMPLETED
 				)
