@@ -211,7 +211,7 @@ func _draw_movement_track_path() -> void:
 	var points := PackedVector2Array()
 	var start_offset := Vector2(
 		movement.movement_track_x.sample_baked(0.0),
-		movement.movement_track_y.sample_baked(0.0)
+		-movement.movement_track_y.sample_baked(0.0)
 	)
 
 	for index in range(21):
