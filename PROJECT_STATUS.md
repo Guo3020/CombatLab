@@ -6,7 +6,7 @@
 
 ## 1. Current focus
 
-Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a small usability pass (Hitbox stacking order, per-Hitbox colors, and visibility toggles) alongside HitInstance runtime validation.
+Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a usability pass (Hitbox stacking order, per-Hitbox colors, visibility toggles, ActionData hierarchy, and canvas context menu) alongside HitInstance runtime validation.
 
 Current migration branch: `feature/hitinstance-runtime-migration` (pending PR review and Godot validation).
 
@@ -16,10 +16,11 @@ The following changes have been prepared on the migration branch but have **not 
 
 - `HitModule` is automatically created only when `CombatActionData.hit_module_enabled` is enabled; HitInstance presence alone no longer controls execution.
 - The HitInstance array is hidden in the Inspector while disabled, but its data is preserved. Enabling HitModule creates one default HitInstance only when the array is empty.
-- The default Player HitInstance mask targets Enemy Layer 3; Enemy Action 01 explicitly targets Player Layer 2.
+- Collision Mask is configured once on `CombatActionData` and shared by every HitInstance in that Action. It appears only when the HitInstance array is non-empty; Player Actions target Enemy Layer 3 (Mask 4), Enemy Action 01 targets Player Layer 2 (Mask 2).
 - Player1 and EnemyBase now have explicit collision layers/masks: Player Layer 2, Enemy Layer 3, both bodies mask World Layer 1.
 - Hit Editor floating panel resizing is restricted to its right edge; tree row selection remains handled by the Tree control.
-- Hitbox list rows now expose a right-click layer menu (raise, lower, top, bottom); the underlying HitInstance Hitbox array order drives both draw order and click priority.
+- Hitbox list rows and canvas Hitboxes both expose the same right-click layer menu (raise, lower, top, bottom); the underlying HitInstance Hitbox array order drives both draw order and click priority.
+- The Hit Editor tree shows the ActionData title and HitInstance titles at the same indentation level; selecting the ActionData title inspects the complete `CombatActionData` resource.
 - Hitboxes within each HitInstance receive related but slightly varied editor colors.
 - HitInstance and individual Hitbox rows have independent eye-button visibility toggles; hidden Hitboxes are omitted from drawing and picking only, with no runtime collision setting changed.
 - These new Hit Editor controls are committed but have not yet been run in Godot 4.7.2; local validation is still required.
@@ -27,7 +28,7 @@ The following changes have been prepared on the migration branch but have **not 
 - Hitboxes in one HitInstance share one target-hit record; different HitInstances have independent records.
 - HitInstance windows are evaluated against the current update interval to avoid waiting an additional Executor update after crossing a configured time boundary.
 - Hitbox X offsets and rotation are mirrored from the Action's captured facing direction.
-- Collision masks now belong to `HitInstanceData`; runtime Areas no longer depend on a scene-level `AttackArea`.
+- Collision masks belong to `CombatActionData` and are shared by all of its runtime HitInstance Areas; runtime Areas no longer depend on a scene-level `AttackArea`.
 - `CombatDebugOverlay` reads runtime HitInstance data, draws actual runtime shapes, shows per-instance hit counts, and marks HitInstance windows under Active.
 - Old `AttackArea` nodes were removed from Player1 and EnemyBase scenes.
 - Existing action resources were cleaned of obsolete manual HitModule entries.
