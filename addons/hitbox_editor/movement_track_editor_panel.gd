@@ -334,7 +334,7 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	lower_range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
 	footer.add_child(lower_range_button)
 	var start_label := Label.new()
-	start_label.text = "双击添加点 · 右键/删除键移除"
+	start_label.text = "双击添加 · 拖动调整 · 右键/删除移除"
 	start_label.add_theme_font_size_override("font_size", 9)
 	start_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(start_label)
