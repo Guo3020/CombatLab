@@ -55,7 +55,7 @@ module_name = "新模块"
 metadata/_custom_type_script = "uid://dp5gttsshciy0"
 
 [resource]
-collision_mask = 4
+collision_mask = 8
 script = ExtResource("3_abeel")
 action_id = &"test_normal_skill_action"
 action_name = "test普特combo"
