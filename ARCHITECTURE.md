@@ -230,18 +230,29 @@ CombatActionData
 `MovementModule` remains responsible for Action-driven movement configuration and lifecycle:
 - `DASH`
 - `VELOCITY_OVERRIDE`
+- `MOVEMENT_TRACK`
 - Stabilization
 - Movement source/request lifecycle
 - Dash-related TimeFreeze
-- Planned `TRACK` mode
 
-`MovementTrack` is an addition to `MovementModule`, not a replacement. Start with X/Y curves relative to the Actor's starting position. More complex Curve2D paths can be added later.
+`MovementTrack` is an addition to `MovementModule`, not a replacement. It uses X/Y Curves whose horizontal axis is normalized Track progress (0–1) and whose values are pixel displacement relative to the Actor's starting position. Duration is stored in seconds. More complex Curve2D paths can be considered later.
 
 Dash remains on its current dedicated behavior; do not migrate Dash to MovementTrack.
 
-Collision policies planned for Track:
-- `BLOCK`: normal world collision.
-- `IGNORE_WORLD`: ignore ordinary map obstacles, but preserve boundary/fall protection. Exact wall/platform behavior should be configurable rather than assuming all collisions are ignored.
+MovementTrack collision policies:
+- `BLOCK`: retain the Actor's normal Collision Mask and standard world collision.
+- `IGNORE_WORLD`: temporarily remove only Layer 2 from the Actor's Collision Mask. Layer 1 and all other mask bits remain enabled.
+- Restore the exact Collision Mask captured when IGNORE_WORLD begins when the Movement request is cleared, replaced, cancelled, or interrupted.
+
+Collision layer convention:
+- Layer 1: Map Boundary. Any map collider on this layer remains collidable during IGNORE_WORLD.
+- Layer 2: World Geometry. Ordinary map collision that IGNORE_WORLD may pass through.
+- Layer 3: Player.
+- Layer 4: Enemy.
+- A map collider may belong to both Layer 1 and Layer 2; Layer 1 membership takes precedence for IGNORE_WORLD and keeps it collidable.
+- The arena's existing ground/platform body uses Layer 2; its bottom fall guard uses Layer 1.
+
+Combat timing uses a fixed 60 Hz physics tick. Runtime Action timing remains seconds; Hit Editor authors and scrubs on a 60 FPS frame ruler through the shared CombatTimebase conversion. Rendering FPS is independent of the physics tick rate.
 
 ## 10. Defense and interruption
 
@@ -277,7 +288,7 @@ AnimationPlayer remains responsible for animation keyframes. CombatLab adds comb
 
 Character animation is expected to be in-place while programmatic systems control world position. This keeps animation and movement trajectory independently inspectable.
 
-The visual Hit Editor now exists and is considered sufficient for the current workflow. Do not expand it while the HitInstance runtime migration is the active priority.
+The Hit Editor timeline now spans Startup → Active → Recovery, displays HitInstance windows relative to Active start and the MovementTrack duration lane, and exposes a frame-snapped playhead. Scrubbing previews the Actor's MovementTrack trajectory and moves Hitbox previews with the Actor.
 
 ## 13. Naming and code conventions
 
