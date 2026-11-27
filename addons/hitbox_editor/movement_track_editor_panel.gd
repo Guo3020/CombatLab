@@ -3,7 +3,6 @@ extends PanelContainer
 
 class_name MovementTrackEditorPanel
 
-const DEFAULT_RANGE := 100.0
 const PANEL_WIDTH := 320.0
 
 var movement: MovementModule
@@ -227,12 +226,17 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	heading.add_child(title)
 	var range_button := Button.new()
 	range_button.flat = true
-	range_button.text = "±100"
-	range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button))
+	range_button.text = "+100"
 	heading.add_child(range_button)
 	section.add_child(graph)
 	var footer := HBoxContainer.new()
 	section.add_child(footer)
+	var lower_range_button := Button.new()
+	lower_range_button.flat = true
+	lower_range_button.text = "-100"
+	range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
+	lower_range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
+	footer.add_child(lower_range_button)
 	var start_label := Label.new()
 	start_label.text = "时间 0"
 	footer.add_child(start_label)
@@ -292,10 +296,11 @@ func _on_collision_changed(index: int) -> void:
 	movement.emit_changed()
 
 
-func _on_range_button_pressed(graph: CurveGraph, button: Button) -> void:
+func _on_range_button_pressed(graph: CurveGraph, button: Button, opposite_button: Button) -> void:
 	_open_number_dialog("纵轴最大位移绝对值", graph.value_range, 1.0, 100000.0, func(value: float) -> void:
 		graph.value_range = value
-		button.text = "±%.0f" % value
+		button.text = "+%.0f" % value
+		opposite_button.text = "-%.0f" % value
 		graph.queue_redraw()
 	)
 
