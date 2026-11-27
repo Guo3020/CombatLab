@@ -259,7 +259,7 @@ func _on_body_entered(
 		" | Instance Enabled：", runtime_state.get("enabled", false),
 		" | Monitoring：", runtime_area.monitoring,
 		" | Mask：", runtime_area.collision_mask,
-		" | Target Layer：", body.collision_layer
+		" | Target Layer：", body.get("collision_layer")
 	)
 
 	if body == context.actor:
