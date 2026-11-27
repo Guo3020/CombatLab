@@ -6,17 +6,11 @@ class_name PlayerMovementController
 # 枚举
 # ==================================================
 
-enum MovementEndReason {
-	COMPLETED,
-	CANCELLED,
-	REPLACED,
-	JUMP_INTERRUPTED
-}
-
 enum MovementMode {
 	NONE,
 	DASH,
-	VELOCITY_OVERRIDE
+	VELOCITY_OVERRIDE,
+	MOVEMENT_TRACK
 }
 
 enum PhaseMode {
@@ -130,6 +124,13 @@ var active_movement_source_id: StringName = &""
 var active_movement_request: Dictionary = {}
 
 var movement_end_velocity_settled: bool = false
+
+# IGNORE_WORLD 临时移除 Layer 2 时，保存 Action 开始前的原始 Mask。
+var movement_track_original_collision_mask: int = -1
+var movement_track_collision_mask_modified: bool = false
+var movement_track_progress: float = 0.0
+var movement_track_displacement: Vector2 = Vector2.ZERO
+var movement_track_start_position: Vector2 = Vector2.ZERO
 
 
 # ==================================================
@@ -261,7 +262,7 @@ func apply_jump(
 
 	if has_action_movement():
 		_finish_active_movement(
-			MovementEndReason.JUMP_INTERRUPTED
+			CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED
 		)
 
 	is_duck_sliding = false
@@ -325,7 +326,7 @@ func apply_super_jump(
 
 	if has_action_movement():
 		_finish_active_movement(
-			MovementEndReason.JUMP_INTERRUPTED
+			CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED
 		)
 
 	is_duck_sliding = false
@@ -374,7 +375,7 @@ func apply_hyper_jump(
 
 	if has_action_movement():
 		_finish_active_movement(
-			MovementEndReason.JUMP_INTERRUPTED
+			CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED
 		)
 
 	is_duck_sliding = false
@@ -522,6 +523,7 @@ func receive_action_movement_request(
 		requested_mode != MovementMode.NONE
 		and requested_mode != MovementMode.DASH
 		and requested_mode != MovementMode.VELOCITY_OVERRIDE
+		and requested_mode != MovementMode.MOVEMENT_TRACK
 	):
 		push_warning("MovementController：不支持的 Movement 模式")
 		return false
@@ -536,13 +538,21 @@ func receive_action_movement_request(
 			push_warning("MovementController：Override 方向必须是 Vector2")
 			return false
 
+	if requested_mode == MovementMode.MOVEMENT_TRACK:
+		if not request.get("movement_track_x") is Curve or not request.get("movement_track_y") is Curve:
+			push_warning("MovementController：MovementTrack 需要有效的 X / Y Curve")
+			return false
+		if float(request.get("movement_track_duration", 0.0)) <= 0.0:
+			push_warning("MovementController：MovementTrack Duration 必须大于 0")
+			return false
+
 	if source_id == active_movement_source_id:
 		active_movement_request = request.duplicate(true)
 		return true
 
 	if has_action_movement():
 		_finish_active_movement(
-			MovementEndReason.REPLACED
+			CombatMovementInterface.MovementEndReason.REPLACED
 		)
 
 	# 新的 Movement 接管时，结束旧 Duck 滑行。
@@ -554,6 +564,9 @@ func receive_action_movement_request(
 	movement_end_velocity_settled = false
 
 	_reset_movement_runtime_state()
+	if requested_mode == MovementMode.MOVEMENT_TRACK and actor != null:
+		movement_track_start_position = actor.global_position
+	_apply_movement_track_collision_strategy(active_movement_request)
 
 	return true
 
@@ -564,7 +577,7 @@ func receive_action_movement_request(
 
 func notify_movement_action_finished(
 	source_id: StringName,
-	end_reason: MovementEndReason
+	end_reason: CombatMovementInterface.MovementEndReason
 ) -> void:
 
 	if source_id != active_movement_source_id:
@@ -572,30 +585,35 @@ func notify_movement_action_finished(
 
 	match end_reason:
 
-		MovementEndReason.COMPLETED:
+		CombatMovementInterface.MovementEndReason.COMPLETED:
 			if int(
 				active_movement_request.get(
 					"movement_mode",
 					MovementMode.NONE
 				)
-			) == MovementMode.NONE:
+			) == MovementMode.NONE or int(
+				active_movement_request.get(
+					"movement_mode",
+					MovementMode.NONE
+				)
+			) == MovementMode.MOVEMENT_TRACK:
 				_finish_active_movement(
-					MovementEndReason.COMPLETED
+					CombatMovementInterface.MovementEndReason.COMPLETED
 				)
 
-		MovementEndReason.CANCELLED:
+		CombatMovementInterface.MovementEndReason.CANCELLED:
 			_finish_active_movement(
-				MovementEndReason.CANCELLED
+				CombatMovementInterface.MovementEndReason.CANCELLED
 			)
 
-		MovementEndReason.REPLACED:
+		CombatMovementInterface.MovementEndReason.REPLACED:
 			_finish_active_movement(
-				MovementEndReason.REPLACED
+				CombatMovementInterface.MovementEndReason.REPLACED
 			)
 
-		MovementEndReason.JUMP_INTERRUPTED:
+		CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED:
 			_finish_active_movement(
-				MovementEndReason.JUMP_INTERRUPTED
+				CombatMovementInterface.MovementEndReason.JUMP_INTERRUPTED
 			)
 
 
@@ -609,7 +627,7 @@ func finish_action_movement(source_id: StringName) -> void:
 		return
 
 	_finish_active_movement(
-		MovementEndReason.COMPLETED
+		CombatMovementInterface.MovementEndReason.COMPLETED
 	)
 
 
@@ -618,15 +636,15 @@ func finish_action_movement(source_id: StringName) -> void:
 # ==================================================
 
 func _finish_active_movement(
-	end_reason: MovementEndReason
+	end_reason: CombatMovementInterface.MovementEndReason
 ) -> void:
 
 	if not has_action_movement():
 		return
 
 	if (
-		end_reason == MovementEndReason.COMPLETED
-		or end_reason == MovementEndReason.REPLACED
+		end_reason == CombatMovementInterface.MovementEndReason.COMPLETED
+		or end_reason == CombatMovementInterface.MovementEndReason.REPLACED
 	):
 		_apply_movement_end_velocity_once()
 
@@ -634,6 +652,8 @@ func _finish_active_movement(
 
 
 func _clear_active_movement() -> void:
+
+	_restore_movement_track_collision_mask()
 
 	active_movement_source_id = &""
 	active_movement_request.clear()
@@ -864,6 +884,12 @@ func update_action_movement(
 				actor_is_on_floor
 			)
 
+		MovementMode.MOVEMENT_TRACK:
+			return _update_movement_track(
+				actor_delta,
+				current_velocity
+			)
+
 		_:
 			return result
 
@@ -1047,6 +1073,113 @@ func _update_dash_movement(
 	result["velocity"] = target_velocity
 
 	return result
+
+
+# ==================================================
+# MovementTrack 实际运动
+# ==================================================
+
+func _update_movement_track(
+	actor_delta: float,
+	_current_velocity: Vector2
+) -> Dictionary:
+	var result := {
+		"active": true,
+		"velocity": Vector2.ZERO,
+		"suppress_gravity": true
+	}
+
+	if actor_delta <= 0.0:
+		result["velocity"] = Vector2.ZERO
+		return result
+
+	var duration: float = maxf(
+		float(active_movement_request.get("movement_track_duration", 0.2)),
+		0.01
+	)
+	var next_elapsed: float = minf(
+		movement_phase_elapsed + actor_delta,
+		duration
+	)
+	var progress: float = clampf(next_elapsed / duration, 0.0, 1.0)
+
+	var x_curve := active_movement_request.get("movement_track_x") as Curve
+	var y_curve := active_movement_request.get("movement_track_y") as Curve
+
+	if x_curve == null or y_curve == null:
+		push_warning("MovementController：MovementTrack Curve 无效，结束当前 Movement")
+		_finish_active_movement(CombatMovementInterface.MovementEndReason.CANCELLED)
+		result["active"] = false
+		return result
+
+	# MovementTrack X follows the facing direction captured when the Action started.
+	# Y uses intuitive authoring coordinates: positive is upward, negative is downward.
+	var facing_direction := -1.0 if float(active_movement_request.get("movement_track_facing_direction", 1)) < 0.0 else 1.0
+	var start_displacement := Vector2(
+		x_curve.sample_baked(0.0) * facing_direction,
+		-y_curve.sample_baked(0.0)
+	)
+	var next_displacement := Vector2(
+		x_curve.sample_baked(progress) * facing_direction,
+		-y_curve.sample_baked(progress)
+	) - start_displacement
+
+	var frame_displacement := next_displacement - movement_track_displacement
+	var output_velocity := frame_displacement / actor_delta
+
+	movement_phase_elapsed = next_elapsed
+	movement_track_progress = progress
+	movement_track_displacement = next_displacement
+
+	result["velocity"] = output_velocity
+
+	if progress >= 1.0:
+		result["velocity"] = _complete_movement_with_velocity(output_velocity)
+
+	return result
+
+
+func is_movement_track_active() -> bool:
+	return (
+		has_action_movement()
+		and int(active_movement_request.get("movement_mode", MovementMode.NONE))
+			== MovementMode.MOVEMENT_TRACK
+	)
+
+
+func _apply_movement_track_collision_strategy(request: Dictionary) -> void:
+	if int(request.get("movement_mode", MovementMode.NONE)) != MovementMode.MOVEMENT_TRACK:
+		return
+
+	var strategy: int = int(
+		request.get("movement_track_collision_strategy", 0)
+	)
+	if strategy != 1:
+		return
+
+	if not actor is CollisionObject2D:
+		push_warning("MovementController：Actor 不是 CollisionObject2D，无法应用 IGNORE_WORLD")
+		return
+
+	var collision_object := actor as CollisionObject2D
+	movement_track_original_collision_mask = collision_object.collision_mask
+	movement_track_collision_mask_modified = true
+
+	# Layer 2（普通地图碰撞）对应 bit 1；Layer 1 始终保留。
+	collision_object.collision_mask = (
+		movement_track_original_collision_mask & ~(1 << 1)
+	)
+
+
+func _restore_movement_track_collision_mask() -> void:
+	if not movement_track_collision_mask_modified:
+		return
+
+	if is_instance_valid(actor) and actor is CollisionObject2D:
+		(actor as CollisionObject2D).collision_mask = movement_track_original_collision_mask
+
+	movement_track_original_collision_mask = -1
+	movement_track_collision_mask_modified = false
 
 
 # ==================================================
@@ -1242,6 +1375,10 @@ func _reset_movement_runtime_state() -> void:
 	movement_vertical_released = false
 	movement_airborne_time = 0.0
 
+	movement_track_progress = 0.0
+	movement_track_displacement = Vector2.ZERO
+	movement_track_start_position = Vector2.ZERO
+
 	dash_grounded_ultra_applied = false
 	dash_grounded_ultra_speed = 0.0
 
@@ -1320,6 +1457,11 @@ func has_action_stabilization() -> bool:
 	)
 
 	if not request is Dictionary:
+		stabilization_context_id = 0
+		stabilization_locked = false
+		return false
+
+	if is_movement_track_active():
 		stabilization_context_id = 0
 		stabilization_locked = false
 		return false

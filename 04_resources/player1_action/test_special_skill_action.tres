@@ -8,11 +8,10 @@
 script = ExtResource("3_m2voi")
 action_id = &"test_special_skill"
 action_name = "test_special_skill"
-energy_cost = 5.0
 startup = 0.25
 active = 0.2
 recovery = 0.5
+energy_cost = 5.0
 action_priority = 2
 cancelable_phases = 0
-modules = Array[ExtResource("1_5lcep")]([])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"

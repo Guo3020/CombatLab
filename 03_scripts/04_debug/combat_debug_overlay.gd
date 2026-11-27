@@ -83,6 +83,12 @@ func _ready() -> void:
 
 	# 获取 Enemy 的 AIController
 	if enemy != null:
+		if enemy.has_signal("debug_damage_number"):
+			enemy.connect(
+				"debug_damage_number",
+				_on_debug_damage_number
+			)
+
 		enemy_ai_controller = enemy.get_node_or_null(
 			"AIController"
 		) as EnemyAIController
@@ -108,12 +114,6 @@ func _ready() -> void:
 
 	else:
 		push_warning("CombatDebugOverlay：没有找到 EnemyBase")
-	print("Overlay visible: ", is_visible_in_tree())
-	print("Overlay modulate: ", modulate)
-	print("Overlay self_modulate: ", self_modulate)
-	print("CanvasLayer: ", get_parent().name)
-	print("CanvasLayer visible: ", get_parent().visible)
-	print("CanvasLayer layer: ", get_parent().layer)
 
 
 
@@ -134,6 +134,7 @@ func _draw() -> void:
 	_draw_timeline()
 	_draw_enemy_timeline()
 	_draw_player_origin()
+	_draw_movement_track_path()
 	_draw_player_collision()
 	_draw_hitbox()
 	_draw_executor_info()
@@ -355,6 +356,56 @@ func _draw_player_origin() -> void:
 		13,
 		Color(1.0, 0.9, 0.2)
 	)
+
+
+# ==================================================
+# MovementTrack 路径 Debug
+# ==================================================
+
+func _draw_movement_track_path() -> void:
+	if player == null:
+		return
+
+	var controller := player.get("movement_controller") as PlayerMovementController
+	if controller == null or not controller.is_movement_track_active():
+		return
+
+	var request: Dictionary = controller.get_active_movement_request()
+	var x_curve := request.get("movement_track_x") as Curve
+	var y_curve := request.get("movement_track_y") as Curve
+	if x_curve == null or y_curve == null:
+		return
+
+	var start_offset := Vector2(
+		x_curve.sample_baked(0.0),
+		y_curve.sample_baked(0.0)
+	)
+	var points := PackedVector2Array()
+
+	for index in range(21):
+		var progress := float(index) / 20.0
+		var displacement := Vector2(
+			x_curve.sample_baked(progress),
+			y_curve.sample_baked(progress)
+		) - start_offset
+		points.append(
+			_world_to_screen(controller.movement_track_start_position + displacement)
+		)
+
+	if points.size() >= 2:
+		draw_polyline(points, Color(0.35, 0.95, 0.75, 0.9), 2.0)
+
+	var planned_position := _world_to_screen(
+		controller.movement_track_start_position
+		+ controller.movement_track_displacement
+	)
+	var actual_position := _world_to_screen(player.global_position)
+
+	draw_circle(planned_position, 4.0, Color(0.35, 1.0, 0.8))
+	draw_circle(actual_position, 5.0, Color(0.95, 0.95, 1.0))
+
+	if planned_position.distance_to(actual_position) > 2.0:
+		draw_line(planned_position, actual_position, Color(1.0, 0.75, 0.25, 0.9), 2.0)
 
 
 # ==================================================
@@ -626,7 +677,13 @@ func _draw_movement_info() -> void:
 		{}
 	)
 
-	if movement_debug.is_empty():
+	var movement_controller := player.get("movement_controller") as PlayerMovementController
+	var movement_track_active: bool = (
+		movement_controller != null
+		and movement_controller.is_movement_track_active()
+	)
+
+	if movement_debug.is_empty() and not movement_track_active:
 		return
 
 	var info_position := Vector2(20.0, 350.0)
@@ -637,6 +694,8 @@ func _draw_movement_info() -> void:
 	var movement_mode: String = str(
 		movement_debug.get("movement_mode", "UNKNOWN")
 	)
+	if movement_track_active:
+		movement_mode = "MOVEMENT_TRACK"
 
 	var stabilization: bool = movement_debug.get(
 		"stabilization_enabled",
@@ -647,6 +706,8 @@ func _draw_movement_info() -> void:
 		"velocity_override_enabled",
 		false
 	)
+	if movement_track_active:
+		override_enabled = false
 
 	var override_active: bool = movement_debug.get(
 		"velocity_override_active",
@@ -704,6 +765,46 @@ func _draw_movement_info() -> void:
 		font_size,
 		Color.ORANGE if override_active else Color.GRAY
 	)
+
+	if movement_track_active:
+		var track_request: Dictionary = movement_controller.get_active_movement_request()
+		var duration: float = float(track_request.get("movement_track_duration", 0.0))
+		var strategy: String = "IGNORE_WORLD" if int(track_request.get("movement_track_collision_strategy", 0)) == 1 else "BLOCK"
+		var current_mask: int = player.collision_mask
+
+		draw_string(
+			font,
+			info_position + Vector2(0.0, line_height * 4.0),
+			"Track: %.1f%%  |  %.3fs / %.3fs" % [
+				movement_controller.movement_track_progress * 100.0,
+				movement_controller.movement_phase_elapsed,
+				duration
+			],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			font_size,
+			Color(0.5, 1.0, 0.75)
+		)
+
+		draw_string(
+			font,
+			info_position + Vector2(0.0, line_height * 5.0),
+			"Collision: %s  |  Mask: %d" % [strategy, current_mask],
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			font_size,
+			Color(0.9, 0.85, 0.55)
+		)
+
+		draw_string(
+			font,
+			info_position + Vector2(0.0, line_height * 6.0),
+			"Track Offset: %s" % str(movement_controller.movement_track_displacement),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			font_size,
+			Color(0.7, 0.85, 1.0)
+		)
 
 	if override_enabled:
 		draw_string(
@@ -1156,7 +1257,7 @@ func _on_target_interrupted(
 	target: Node,
 	_attacker: Node,
 	action_progress: float,
-	phase_name: String
+	_phase_name: String
 ) -> void:
 	if target != enemy:
 		return

@@ -7,7 +7,14 @@ class_name MovementModule
 enum MovementMode {
 	NONE,
 	DASH,
-	VELOCITY_OVERRIDE
+	VELOCITY_OVERRIDE,
+	MOVEMENT_TRACK
+}
+
+
+enum MovementCollisionStrategy {
+	BLOCK,
+	IGNORE_WORLD
 }
 
 enum DirectionSource {
@@ -56,6 +63,7 @@ func _validate_property(property: Dictionary) -> void:
 
 	var is_dash_mode: bool = movement_mode == MovementMode.DASH
 	var is_override_mode: bool = movement_mode == MovementMode.VELOCITY_OVERRIDE
+	var is_movement_track_mode: bool = movement_mode == MovementMode.MOVEMENT_TRACK
 
 	var dash_properties: Array[StringName] = [
 		&"dash_speed",
@@ -78,10 +86,27 @@ func _validate_property(property: Dictionary) -> void:
 		&"override_suppress_gravity"
 	]
 
+	var movement_track_properties: Array[StringName] = [
+		&"movement_track_duration",
+		&"movement_track_x",
+		&"movement_track_y",
+		&"movement_track_collision_strategy"
+	]
+
 	if property_name in dash_properties and not is_dash_mode:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
 
 	if property_name in override_properties and not is_override_mode:
+		property.usage = PROPERTY_USAGE_NO_EDITOR
+
+	if property_name in movement_track_properties and not is_movement_track_mode:
+		property.usage = PROPERTY_USAGE_NO_EDITOR
+
+	# Duration and collision strategy are configured in the Hit Editor panel.
+	if property_name in [&"movement_track_duration", &"movement_track_collision_strategy"] and is_movement_track_mode:
+		property.usage = PROPERTY_USAGE_STORAGE
+
+	if property_name == &"stabilization_enabled" and is_movement_track_mode:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
 
 	if property_name in [&"end_velocity_mode", &"end_speed"]:
@@ -112,7 +137,9 @@ func _validate_property(property: Dictionary) -> void:
 	)
 
 	if is_stabilization_config_property:
-		if not is_stabilization_enabled:
+		if is_movement_track_mode:
+			property.usage = PROPERTY_USAGE_NO_EDITOR
+		elif not is_stabilization_enabled:
 			property.usage = PROPERTY_USAGE_NO_EDITOR
 
 		elif stabilization_activation_mode == StabilizationActivationMode.PHASE_RANGE:
@@ -219,6 +246,52 @@ var override_speed: float = 240.0
 
 
 # ==================================================
+# MovementTrack 配置
+# ==================================================
+
+@export_group("MovementTrack")
+
+@export_range(0.01, 5.0, 0.01)
+var movement_track_duration: float = 0.2
+
+@export var movement_track_x: Curve = Curve.new()
+
+@export var movement_track_y: Curve = Curve.new()
+
+@export var movement_track_collision_strategy: MovementCollisionStrategy = MovementCollisionStrategy.BLOCK
+
+
+func _init() -> void:
+	_initialize_flat_track_curve(movement_track_x)
+	_initialize_flat_track_curve(movement_track_y)
+
+
+func _initialize_flat_track_curve(curve: Curve) -> void:
+	if curve == null:
+		return
+
+	if curve.resource_name.is_empty():
+		curve.resource_name = "MovementTrack Curve"
+
+	if curve.get_point_count() == 0:
+		curve.add_point(Vector2(0.0, 0.0))
+		curve.add_point(Vector2(1.0, 0.0))
+	elif curve.get_point_count() == 1:
+		curve.set_point_position(0, Vector2(0.0, 0.0))
+		curve.add_point(Vector2(1.0, 0.0))
+	else:
+		curve.set_point_position(0, Vector2(0.0, 0.0))
+		curve.set_point_position(
+			curve.get_point_count() - 1,
+			Vector2(1.0, 0.0)
+		)
+
+	curve.min_value = -1000.0
+	curve.max_value = 1000.0
+	curve.bake_resolution = 8
+
+
+# ==================================================
 # 模块接口
 # ==================================================
 
@@ -294,6 +367,26 @@ func on_module_start(context: RefCounted) -> void:
 			"dash_time_freeze_duration": dash_time_freeze_duration
 		})
 
+	elif movement_mode == MovementMode.MOVEMENT_TRACK:
+		if movement_track_x != null:
+			movement_track_x.resource_name = "MovementTrack X Curve"
+			movement_track_x.bake_resolution = 8
+		if movement_track_y != null:
+			movement_track_y.resource_name = "MovementTrack Y Curve"
+			movement_track_y.bake_resolution = 8
+		movement_request.merge({
+			"movement_track_duration": movement_track_duration,
+			"movement_track_facing_direction": action_context.facing_direction,
+			"movement_track_x": movement_track_x,
+			"movement_track_y": movement_track_y,
+			"movement_track_collision_strategy": movement_track_collision_strategy
+		})
+
+		movement_debug.merge({
+			"movement_track_duration": movement_track_duration,
+			"movement_track_collision_strategy": "IGNORE_WORLD" if movement_track_collision_strategy == MovementCollisionStrategy.IGNORE_WORLD else "BLOCK"
+		})
+
 	elif movement_mode == MovementMode.VELOCITY_OVERRIDE:
 		var direction := _get_direction(
 			action_context,
@@ -332,16 +425,17 @@ func on_module_start(context: RefCounted) -> void:
 	# NONE 也可能包含 Stabilization 等 Movement 行为。
 	# 只要加载并启动了 MovementModule，就提交请求。
 
-	var movement_controller := action_context.actor.get(
-		"movement_controller"
-	) as PlayerMovementController
+	var movement_handler: Object = action_context.actor.get(
+		"movement_request_handler"
+	) as Object
 
-	if movement_controller == null:
+	if not CombatMovementInterface.supports(movement_handler):
 		push_warning(
-			"MovementModule: 无法获取 PlayerMovementController，Movement 请求未提交。"
+			"MovementModule: Actor 的 movement_request_handler 未实现 CombatMovementInterface，Movement 请求未提交。"
 		)
 	else:
-		var accepted := movement_controller.receive_action_movement_request(
+		var accepted := CombatMovementInterface.receive_action_movement_request(
+			movement_handler,
 			movement_source_id,
 			movement_request
 		)
@@ -368,7 +462,7 @@ func on_module_start(context: RefCounted) -> void:
 
 		else:
 			push_warning(
-				"MovementModule: PlayerMovementController 拒绝了 Movement 请求。"
+				"MovementModule: movement_request_handler 拒绝了 Movement 请求。"
 			)
 
 	action_context.runtime_data["movement_request"] = movement_request
@@ -405,11 +499,11 @@ func on_module_end(context: RefCounted) -> void:
 		movement_source_id != &""
 		and is_instance_valid(action_context.actor)
 	):
-		var movement_controller := action_context.actor.get(
-			"movement_controller"
-		) as PlayerMovementController
+		var movement_handler: Object = action_context.actor.get(
+			"movement_request_handler"
+		) as Object
 
-		if movement_controller != null:
+		if CombatMovementInterface.supports(movement_handler):
 			var action_end_reason: StringName = StringName(
 				action_context.runtime_data.get(
 					"action_end_reason",
@@ -417,26 +511,27 @@ func on_module_end(context: RefCounted) -> void:
 				)
 			)
 
-			var movement_end_reason: PlayerMovementController.MovementEndReason
+			var movement_end_reason: CombatMovementInterface.MovementEndReason
 
 			match action_end_reason:
 				&"completed":
-					movement_end_reason = PlayerMovementController.MovementEndReason.COMPLETED
+					movement_end_reason = CombatMovementInterface.MovementEndReason.COMPLETED
 
 				&"replaced":
-					movement_end_reason = PlayerMovementController.MovementEndReason.REPLACED
+					movement_end_reason = CombatMovementInterface.MovementEndReason.REPLACED
 
 				&"cancelled":
-					movement_end_reason = PlayerMovementController.MovementEndReason.CANCELLED
+					movement_end_reason = CombatMovementInterface.MovementEndReason.CANCELLED
 
 				_:
 					push_warning(
 						"MovementModule: 未知的 Action 结束原因：%s，按取消处理。"
 						% action_end_reason
 					)
-					movement_end_reason = PlayerMovementController.MovementEndReason.CANCELLED
+					movement_end_reason = CombatMovementInterface.MovementEndReason.CANCELLED
 
-			movement_controller.notify_movement_action_finished(
+			CombatMovementInterface.notify_movement_action_finished(
+				movement_handler,
 				movement_source_id,
 				movement_end_reason
 			)
@@ -458,6 +553,9 @@ func _get_movement_mode_name() -> String:
 
 		MovementMode.VELOCITY_OVERRIDE:
 			return "VELOCITY_OVERRIDE"
+
+		MovementMode.MOVEMENT_TRACK:
+			return "MOVEMENT_TRACK"
 
 		_:
 			return "NONE"

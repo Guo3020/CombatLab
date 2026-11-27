@@ -169,6 +169,8 @@ For each HitInstance:
 
 Data Resources must not execute collision logic or manipulate time.
 
+Damage debug numbers are emitted from the hit target, not the attacker. `CombatDebugOverlay` listens to Player and Enemy target signals so incoming and outgoing hits display at the target position.
+
 `HitManager` retains its dedicated target-interruption responsibility:
 - Compare incoming interrupt level with target super armor level.
 - Cancel/interfere with target Action/Combo as appropriate.
@@ -192,23 +194,65 @@ Do not add a blanket frozen check to `CombatActionExecutor.start_action()`.
 
 ## 9. Movement architecture
 
-`PlayerMovementController` is the single authority for Player1 movement, jump, gravity, Dash, Stabilization, crouch/duck behavior, and future movement tracks. Player1 calls `move_and_slide()`.
+### 9.1 Actor-specific controllers
+
+- `PlayerMovementController` remains the actual authority for Player1 movement, jump, gravity, Dash, Stabilization, crouch/duck behavior, and future movement tracks. Player1 owns physics and calls `move_and_slide()`.
+- `EnemyMovementController` remains the actual authority for current Enemy AI locomotion. Action-driven enemy movement is not implemented yet.
+- These controllers are not wrapped by a third shared controller. Each Actor exposes its own request receiver through `movement_request_handler`.
+
+### 9.2 Shared Action Movement request contract
+
+GDScript does not provide interface/multiple inheritance in the same way as languages with formal interface types. `CombatMovementInterface` therefore defines a shared method contract and dispatch helper (duck-typed), not a runtime movement controller or a required common superclass.
+
+The contract currently contains:
+- `receive_action_movement_request(source_id, request) -> bool`
+- `notify_movement_action_finished(source_id, end_reason) -> void`
+- Shared `MovementEndReason` values: `COMPLETED`, `CANCELLED`, `REPLACED`, `JUMP_INTERRUPTED`
+
+Runtime flow:
+
+```text
+CombatActionData
+  -> MovementModule
+  -> CombatActionContext.actor
+  -> actor.movement_request_handler
+  -> PlayerMovementController OR EnemyMovementController
+```
+
+- `MovementModule` only submits a request and sends lifecycle completion.
+- The Actor provides `movement_request_handler`; it does not inspect Player/Enemy groups.
+- Player and Enemy keep independent controller implementations.
+- `EnemyMovementController` currently implements no-op contract methods that accept and discard Action Movement requests. This prevents unsupported enemy Action Movement modules from producing warnings while leaving AI movement unchanged.
+- If a future Actor exposes an object that does not implement the contract, `MovementModule` reports the configuration problem instead of attempting an invalid cast.
+
+### 9.3 Movement responsibilities
 
 `MovementModule` remains responsible for Action-driven movement configuration and lifecycle:
 - `DASH`
 - `VELOCITY_OVERRIDE`
+- `MOVEMENT_TRACK`
 - Stabilization
 - Movement source/request lifecycle
 - Dash-related TimeFreeze
-- Planned `TRACK` mode
 
-`MovementTrack` is an addition to `MovementModule`, not a replacement. Start with X/Y curves relative to the Actor's starting position. More complex Curve2D paths can be added later.
+`MovementTrack` is an addition to `MovementModule`, not a replacement. It uses X/Y Curves whose horizontal axis is normalized Track progress (0–1) and whose values are pixel displacement relative to the Actor's starting position. Duration is stored in seconds. More complex Curve2D paths can be considered later.
 
 Dash remains on its current dedicated behavior; do not migrate Dash to MovementTrack.
 
-Collision policies planned for Track:
-- `BLOCK`: normal world collision.
-- `IGNORE_WORLD`: ignore ordinary map obstacles, but preserve boundary/fall protection. Exact wall/platform behavior should be configurable rather than assuming all collisions are ignored.
+MovementTrack collision policies:
+- `BLOCK`: retain the Actor's normal Collision Mask and standard world collision.
+- `IGNORE_WORLD`: temporarily remove only Layer 2 from the Actor's Collision Mask. Layer 1 and all other mask bits remain enabled.
+- Restore the exact Collision Mask captured when IGNORE_WORLD begins when the Movement request is cleared, replaced, cancelled, or interrupted.
+
+Collision layer convention:
+- Layer 1: Map Boundary. Any map collider on this layer remains collidable during IGNORE_WORLD.
+- Layer 2: World Geometry. Ordinary map collision that IGNORE_WORLD may pass through.
+- Layer 3: Player.
+- Layer 4: Enemy.
+- A map collider may belong to both Layer 1 and Layer 2; Layer 1 membership takes precedence for IGNORE_WORLD and keeps it collidable.
+- The arena's existing ground/platform body uses Layer 2; its bottom fall guard and left/right map-edge guards use Layer 1.
+
+Combat timing uses a fixed 60 Hz physics tick. Runtime Action timing remains seconds; Hit Editor authors and scrubs on a 60 FPS frame ruler through the shared CombatTimebase conversion. Rendering FPS is independent of the physics tick rate.
 
 ## 10. Defense and interruption
 
@@ -244,7 +288,7 @@ AnimationPlayer remains responsible for animation keyframes. CombatLab adds comb
 
 Character animation is expected to be in-place while programmatic systems control world position. This keeps animation and movement trajectory independently inspectable.
 
-The visual Hit Editor now exists and is considered sufficient for the current workflow. Do not expand it while the HitInstance runtime migration is the active priority.
+The Hit Editor timeline now spans Startup → Active → Recovery, displays HitInstance windows relative to Active start and the MovementTrack duration lane, and exposes a frame-snapped playhead. Scrubbing previews the Actor's MovementTrack trajectory and moves Hitbox previews with the Actor.
 
 ## 13. Naming and code conventions
 

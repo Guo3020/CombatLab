@@ -1,12 +1,12 @@
 # CombatLab — Project Status
 
-> Last updated: 2026-11-27  
+> Last updated: 2026-11-27 (debug cleanup)  
 > Project: Godot 2D side-view action-combat prototype  
 > Status source: current GitHub `main` plus user-confirmed test results. The HitInstance migration branch described below is not merged or locally tested yet.
 
 ## 1. Current focus
 
-Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a usability pass (Hitbox stacking order, per-Hitbox colors, visibility toggles, ActionData hierarchy, and canvas context menu) alongside HitInstance runtime validation.
+Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a usability pass (Hitbox stacking order, per-Hitbox colors, visibility toggles, ActionData hierarchy, and canvas context menu) alongside HitInstance runtime validation, including Enemy-to-Player hit diagnosis and target-side damage numbers.
 
 Current migration branch: `feature/hitinstance-runtime-migration` (pending PR review and Godot validation).
 
@@ -23,6 +23,8 @@ The following changes have been prepared on the migration branch but have **not 
 - The Hit Editor tree shows the ActionData title and HitInstance titles at the same indentation level; selecting the ActionData title inspects the complete `CombatActionData` resource.
 - Hitboxes within each HitInstance receive related but slightly varied editor colors.
 - HitInstance and individual Hitbox rows have independent eye-button visibility toggles; hidden Hitboxes are omitted from drawing and picking only, with no runtime collision setting changed.
+- Damage debug numbers are now emitted by the hit target rather than the attacker, so incoming Enemy damage can appear over Player. Enemy targets also expose the same debug signal.
+- Temporary HitModule contact/diagnostic prints and Overlay visibility prints have been removed after Enemy-to-Player damage feedback was restored. Damage debug numbers are emitted directly by `Player1.take_damage()` / `EnemyBase.take_damage()`.
 - These new Hit Editor controls are committed but have not yet been run in Godot 4.7.2; local validation is still required.
 - One runtime `Area2D` is created per HitInstance, with one `CollisionShape2D` per Hitbox.
 - Hitboxes in one HitInstance share one target-hit record; different HitInstances have independent records.
@@ -147,23 +149,27 @@ The exact fields and shape construction must be checked against the actual `hitb
 
 ## 5. MovementTrack direction
 
-- `MovementTrack` is planned as a new mode/capability within `MovementModule`, not a replacement for it.
-- Existing Dash, velocity override, stabilization, Movement Request lifecycle, and Dash TimeFreeze responsibilities remain.
-- Initial Track implementation should focus on X/Y curves relative to the starting position.
-- Complex `Curve2D` trajectories can come later.
+- `MovementTrack` is implemented as a new mode within `MovementModule`; it does not replace the module.
+- Existing Dash, Velocity Override, Stabilization, Movement Request lifecycle, and Dash TimeFreeze responsibilities remain.
+- Track uses X/Y Curves: normalized progress 0–1 on the horizontal axis and pixel displacement relative to Actor start position on the vertical axis.
+- Duration is runtime seconds; Curve2D trajectories remain a possible later extension.
 - Dash remains on its existing implementation.
-- Collision policy should distinguish blocking world collision from a configurable ignore-world mode, while retaining map-boundary/fall protection.
+- BLOCK keeps the normal Collision Mask. IGNORE_WORLD temporarily removes only Layer 2 and preserves Layer 1 plus all other mask bits; the original mask is restored when the Movement request ends.
+- Collision layers are now Layer 1 Map Boundary, Layer 2 World Geometry, Layer 3 Player, and Layer 4 Enemy. Ground/platforms use Layer 2; the arena bottom and side boundary guards use Layer 1. Map colliders may belong to both layers.
+- Project physics tick rate is set to 60 Hz. Runtime Action timing remains seconds; Hit Editor's timeline ruler and playhead use 60 Hz frames via CombatTimebase.
+- Hit Editor now displays the full Action phase timeline, HitInstance windows, MovementTrack lane, and a frame-snapped playhead that previews Actor and Hitbox movement.
 
 ## 6. Immediate next steps
 
-1. Review the migration PR and synchronize the local project when ready to test.
-2. Open the project in Godot 4.7.2 and confirm there are no script parse errors, missing resources, or invalid `.tres` references.
-3. Verify left/right Hitbox mirroring for rectangle, circle, and capsule shapes.
-4. Verify HitInstance start/end timing, including boundaries that fall between frame timestamps.
-5. Verify per-instance target deduplication, later-instance re-hits, Hitstop, and Action cancellation cleanup.
-6. Verify the DebugOverlay displays actual runtime Hitboxes and HitInstance timing for both Player and Enemy.
-7. In Hit Editor, test Hitbox layer ordering / topmost selection, Undo/Redo, per-Hitbox color variation, and independent HitInstance / Hitbox visibility toggles.
-8. Only after these checks pass, mark the migration and editor updates complete and continue to the next combat-system feature.
+1. Review PR #2 and synchronize the local project when ready to test.
+2. Open the project in Godot 4.7.2 and confirm there are no script parse errors, invalid resources, or warnings. Confirm Player and Enemy expose `movement_request_handler`; Enemy Action Movement requests remain accepted no-ops without changing AI locomotion.
+3. Re-test Player attacks against Enemy and Enemy Action 01 against Player after the Layer 1–4 migration.
+4. Test MovementTrack BLOCK against walls, platforms, and ground; test IGNORE_WORLD against Layer 2 and Layer 1 objects.
+5. Confirm IGNORE_WORLD restores the exact original Collision Mask after normal completion, Action cancellation, replacement, and Jump interruption.
+6. Test X/Y curves, positive/negative displacement, durations, and movement with gravity suppressed while the Track is active.
+7. In Hit Editor, scrub by frame and confirm the Actor and Hitboxes follow the MovementTrack preview; verify selection and dragging still work at non-zero playhead positions.
+8. Re-test HitInstance timing, per-instance deduplication, Hitstop, DebugOverlay, Hitbox layer ordering, Undo/Redo, and visibility toggles.
+9. Only after these checks pass, mark the MovementTrack and editor updates complete.
 
 ## 7. Collaboration constraints
 
@@ -174,3 +180,22 @@ The exact fields and shape construction must be checked against the actual `hitb
 - Avoid unused variables, speculative fields, and unnecessary abstraction.
 - Do not guess current source code: use the latest files the user provides.
 - Do not add art or generate images unless explicitly requested.
+
+
+## 8. Shared Movement Request Interface (2026-11-27)
+
+- Added the `CombatMovementInterface` request contract and shared Action end-reason enum.
+- `MovementModule` now resolves `Actor.movement_request_handler` and no longer casts to `PlayerMovementController`.
+- Player1 exposes its existing `PlayerMovementController` through `movement_request_handler`; player movement behavior is unchanged.
+- EnemyBase exposes its existing `EnemyMovementController` through the same property. The enemy controller implements no-op request/lifecycle methods only; AI locomotion is unchanged and Action-driven enemy movement remains unimplemented.
+- Godot runtime validation is still pending; this change has been statically reviewed only.
+
+
+## 9. MovementTrack implementation status (2026-11-27)
+
+- Runtime X/Y Curve sampling and MovementTrack velocity handoff are implemented in PlayerMovementController.
+- BLOCK and IGNORE_WORLD are wired through MovementModule. IGNORE_WORLD removes only the Layer 2 mask bit and restores the captured mask on movement cleanup.
+- Runtime debug shows the MovementTrack path, progress, displacement, collision strategy, and current mask.
+- Hit Editor has the full Action timeline, HitInstance lanes, MovementTrack lane, frame-snapped playhead, and Actor/Hitbox trajectory preview.
+- Collision layer assignments and Player/Enemy Action hit masks were shifted to preserve target detection.
+- Godot 4.7.2 import, parse, editor, and runtime tests have not yet been run. Treat all runtime behavior as pending local verification.

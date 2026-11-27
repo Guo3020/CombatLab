@@ -23,9 +23,25 @@ start_phase = 0
 end_phase = 2
 metadata/_custom_type_script = "uid://b6rcn7gpfb78m"
 
+[sub_resource type="Curve" id="Curve_c32de"]
+resource_name = "MovementTrack Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 8
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_mevji"]
+resource_name = "MovementTrack Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 8
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
 [sub_resource type="Resource" id="Resource_pfusb"]
 script = ExtResource("5_c32de")
 stabilization_speed = 900.0
+movement_track_x = SubResource("Curve_c32de")
+movement_track_y = SubResource("Curve_mevji")
 metadata/_custom_type_script = "uid://dp5gttsshciy0"
 
 [resource]

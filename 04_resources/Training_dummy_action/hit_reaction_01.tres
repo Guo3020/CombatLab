@@ -12,5 +12,4 @@ active = 0.0
 recovery = 0.35
 input_window = 0.0
 action_priority = 10
-modules = Array[ExtResource("1_g2ga6")]([])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"

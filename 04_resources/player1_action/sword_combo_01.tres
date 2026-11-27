@@ -8,33 +8,35 @@
 
 [sub_resource type="Resource" id="Resource_a1xv0"]
 script = ExtResource("2_a1xv0")
-offset = Vector2(60, 0)
-rectangle_size = Vector2(180, 100)
+shape_type = 1
+offset = Vector2(600, 0)
 metadata/_custom_type_script = "uid://dsiqusg72sqha"
 
 [sub_resource type="Resource" id="Resource_tehj2"]
 script = ExtResource("1_tehj2")
-end_time = 0.2
 hitboxes = Array[ExtResource("2_a1xv0")]([SubResource("Resource_a1xv0")])
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
-[sub_resource type="Resource" id="Resource_4ikgc"]
-script = ExtResource("2_a1xv0")
-offset = Vector2(60, 0)
-rectangle_size = Vector2(160, 80)
+[sub_resource type="Curve" id="Curve_4ikgc"]
+resource_name = "MovementTrack Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 8
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
 
-[sub_resource type="Resource" id="Resource_g1ohs"]
-script = ExtResource("1_tehj2")
-start_time = 0.3
-end_time = 0.5
-damage = 12.0
-hitboxes = Array[ExtResource("2_a1xv0")]([SubResource("Resource_4ikgc")])
-metadata/_custom_type_script = "uid://bx3y8p324q4xu"
+[sub_resource type="Curve" id="Curve_tehj2"]
+resource_name = "MovementTrack Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 8
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
 
 [sub_resource type="Resource" id="Resource_pfusb"]
 script = ExtResource("4_4ikgc")
 stabilization_enabled = false
 stabilization_speed = 1000.0
+movement_track_x = SubResource("Curve_4ikgc")
+movement_track_y = SubResource("Curve_tehj2")
 metadata/_custom_type_script = "uid://dp5gttsshciy0"
 
 [resource]
@@ -46,6 +48,6 @@ active = 0.4
 recovery = 0.2
 input_window = 0.6
 hit_module_enabled = true
-hit_instances = Array[ExtResource("1_tehj2")]([SubResource("Resource_tehj2"), SubResource("Resource_g1ohs")])
+hit_instances = Array[ExtResource("1_tehj2")]([SubResource("Resource_tehj2")])
 modules = Array[ExtResource("1_yhuu6")]([SubResource("Resource_pfusb")])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"

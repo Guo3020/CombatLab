@@ -3,6 +3,7 @@ extends Control
 
 const CANVAS_SCRIPT = preload("res://addons/hitbox_editor/hitbox_editor_canvas.gd")
 const TIMELINE_SCRIPT = preload("res://addons/hitbox_editor/hitbox_editor_timeline.gd")
+const MOVEMENT_TRACK_PANEL_SCRIPT = preload("res://addons/hitbox_editor/movement_track_editor_panel.gd")
 
 const PANEL_POSITION_SETTING := "editors/hit_editor/instance_panel_position"
 const PANEL_WIDTH_SETTING := "editors/hit_editor/instance_panel_width"
@@ -32,6 +33,7 @@ var panel_header: Control
 var resize_grip: Control
 var canvas: Control
 var timeline: Control
+var movement_track_panel: PanelContainer
 var status: Label
 var plugin: EditorPlugin
 var last_tree_signature: String = ""
@@ -73,12 +75,14 @@ func _ready() -> void:
 	layout.add_child(canvas)
 
 	_create_floating_instance_list()
+	_create_movement_track_panel()
 
 	timeline = Control.new()
 	timeline.set_script(TIMELINE_SCRIPT)
 	timeline.custom_minimum_size = Vector2(500, 132)
 	timeline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	timeline.hit_instance_selected.connect(_on_timeline_selected)
+	timeline.preview_time_changed.connect(_on_timeline_preview_time_changed)
 	layout.add_child(timeline)
 
 	status = Label.new()
@@ -180,6 +184,9 @@ func _process(_delta: float) -> void:
 		tree_panel.custom_minimum_size.x = new_width
 		_position_resize_grip()
 
+	if movement_track_panel.get("movement") != _get_movement_track_module():
+		movement_track_panel.call("set_movement", _get_movement_track_module())
+
 	if action_data == null:
 		return
 
@@ -263,9 +270,33 @@ func set_action_data(value: CombatActionData) -> void:
 
 	_refresh_tree()
 	canvas.set_action_data(value)
+	movement_track_panel.call("set_movement", _get_movement_track_module())
 	timeline.set_action_data(value)
+	canvas.set_preview_time(0.0)
 	_connect_resource_changes()
 	_update_status()
+
+func _get_movement_track_module() -> MovementModule:
+	if action_data == null:
+		return null
+	for module in action_data.modules:
+		if module is MovementModule:
+			var movement := module as MovementModule
+			if movement.movement_mode == MovementModule.MovementMode.MOVEMENT_TRACK:
+				return movement
+	return null
+
+
+func _create_movement_track_panel() -> void:
+	movement_track_panel = PanelContainer.new()
+	movement_track_panel.name = "MovementTrackFloatingPanel"
+	movement_track_panel.set_script(MOVEMENT_TRACK_PANEL_SCRIPT)
+	movement_track_panel.position = Vector2(maxf(canvas.size.x - 340.0, 12.0), 12.0)
+	movement_track_panel.size = Vector2(320.0, 430.0)
+	movement_track_panel.custom_minimum_size = Vector2(320.0, 320.0)
+	movement_track_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	canvas.add_child(movement_track_panel)
+
 
 func _connect_resource_changes() -> void:
 	if action_data == null:
@@ -491,6 +522,13 @@ func _on_canvas_selected(value: HitboxData) -> void:
 	_inspect_selected()
 	_update_status()
 
+func _on_timeline_preview_time_changed(value: float) -> void:
+	if is_instance_valid(canvas):
+		canvas.set_preview_time(value)
+	if is_instance_valid(status):
+		_update_status()
+
+
 func _on_timeline_selected(value: HitInstanceData) -> void:
 	selected_instance = value
 	selected_hitbox = null
@@ -548,9 +586,9 @@ func _update_status() -> void:
 	if selected_hitbox != null:
 		status.text = "%s  |  判定框偏移：%s" % [label, str(selected_hitbox.offset)]
 	elif selected_instance != null:
-		status.text = "%s  |  命中实例：%.2f - %.2f 秒" % [label, selected_instance.start_time, selected_instance.end_time]
+		status.text = "%s  |  命中实例：%.2f - %.2f 秒  |  预览：%dF" % [label, selected_instance.start_time, selected_instance.end_time, CombatTimebase.seconds_to_frames(timeline.preview_time)]
 	else:
-		status.text = "%s  |  请在悬浮列表中选择命中实例或判定框。" % label
+		status.text = "%s  |  预览：%dF  |  请在悬浮列表中选择命中实例或判定框。" % [label, CombatTimebase.seconds_to_frames(timeline.preview_time)]
 
 func _show_empty() -> void:
 	status.text = "请在文件系统中选择一个 CombatActionData 资源。"
