@@ -69,6 +69,7 @@ func _ready() -> void:
 	canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	canvas.custom_minimum_size = Vector2(500, 300)
 	canvas.hitbox_selected.connect(_on_canvas_selected)
+	canvas.hitbox_context_requested.connect(_on_canvas_context_requested)
 	layout.add_child(canvas)
 
 	_create_floating_instance_list()
@@ -298,7 +299,7 @@ func _build_tree_signature() -> String:
 	if action_data == null:
 		return ""
 
-	var parts: PackedStringArray = []
+	var parts: PackedStringArray = [action_data.action_name, str(action_data.collision_mask)]
 	for i in range(action_data.hit_instances.size()):
 		var instance: HitInstanceData = action_data.hit_instances[i]
 		if instance == null:
@@ -324,6 +325,11 @@ func _refresh_tree() -> void:
 	var root := tree.create_item()
 	if action_data == null:
 		return
+
+	# ActionData 与 HitInstance 使用同一层级显示，避免标题缩进。
+	var action_item := tree.create_item(root)
+	action_item.set_text(0, action_data.action_name)
+	action_item.set_metadata(0, action_data)
 
 	for i in range(action_data.hit_instances.size()):
 		var instance: HitInstanceData = action_data.hit_instances[i]
@@ -394,11 +400,23 @@ func _on_tree_gui_input(event: InputEvent) -> void:
 	var value: Variant = item.get_metadata(0)
 	if not value is HitboxData:
 		return
+	_show_hitbox_context_menu(value)
+	tree.accept_event()
+
+func _on_canvas_context_requested(value: HitboxData) -> void:
+	_show_hitbox_context_menu(value)
+
+func _show_hitbox_context_menu(value: HitboxData) -> void:
 	context_hitbox = value
 	context_instance = _parent_instance(context_hitbox)
 	if context_instance == null:
 		return
-	tree.set_selected(item, 0)
+	selected_hitbox = context_hitbox
+	selected_instance = context_instance
+	_select_tree_item(context_hitbox)
+	_sync_selection()
+	_inspect_selected()
+	_update_status()
 	context_menu.clear()
 	var current_index := context_instance.hitboxes.find(context_hitbox)
 	context_menu.add_item("上移一层", MOVE_UP)
@@ -410,9 +428,8 @@ func _on_tree_gui_input(event: InputEvent) -> void:
 	context_menu.set_item_disabled(1, current_index <= 0)
 	context_menu.set_item_disabled(3, current_index >= context_instance.hitboxes.size() - 1)
 	context_menu.set_item_disabled(4, current_index <= 0)
-	context_menu.position = Vector2i(tree.get_viewport().get_mouse_position())
+	context_menu.position = Vector2i(get_viewport().get_mouse_position())
 	context_menu.popup()
-	tree.accept_event()
 
 func _on_context_menu_id_pressed(id: int) -> void:
 	if context_instance == null or context_hitbox == null:
@@ -458,6 +475,9 @@ func _on_tree_selected() -> void:
 		selected_instance = _parent_instance(value)
 	elif value is HitInstanceData:
 		selected_instance = value
+		selected_hitbox = null
+	elif value is CombatActionData:
+		selected_instance = null
 		selected_hitbox = null
 	_sync_selection()
 	_inspect_selected()
