@@ -45,10 +45,6 @@ var damage: float = 10.0
 # 并共享同一份目标命中记录。
 @export_group("攻击判定")
 
-# 项目约定：Layer 2 = Player，Layer 3 = Enemy。
-# 默认攻击对象为 Enemy（Layer 3）；敌方动作资源应显式设为 Layer 2。
-@export_flags_2d_physics var collision_mask: int = 1 << 2
-
 @export var hitboxes: Array[HitboxData] = []
 
 
