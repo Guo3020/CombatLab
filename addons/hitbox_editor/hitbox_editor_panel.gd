@@ -3,6 +3,7 @@ extends Control
 
 const CANVAS_SCRIPT = preload("res://addons/hitbox_editor/hitbox_editor_canvas.gd")
 const TIMELINE_SCRIPT = preload("res://addons/hitbox_editor/hitbox_editor_timeline.gd")
+const MOVEMENT_TRACK_PANEL_SCRIPT = preload("res://addons/hitbox_editor/movement_track_editor_panel.gd")
 
 const PANEL_POSITION_SETTING := "editors/hit_editor/instance_panel_position"
 const PANEL_WIDTH_SETTING := "editors/hit_editor/instance_panel_width"
@@ -32,6 +33,7 @@ var panel_header: Control
 var resize_grip: Control
 var canvas: Control
 var timeline: Control
+var movement_track_panel: PanelContainer
 var status: Label
 var plugin: EditorPlugin
 var last_tree_signature: String = ""
@@ -73,6 +75,7 @@ func _ready() -> void:
 	layout.add_child(canvas)
 
 	_create_floating_instance_list()
+	_create_movement_track_panel()
 
 	timeline = Control.new()
 	timeline.set_script(TIMELINE_SCRIPT)
@@ -264,10 +267,33 @@ func set_action_data(value: CombatActionData) -> void:
 
 	_refresh_tree()
 	canvas.set_action_data(value)
+	movement_track_panel.set_movement(_get_movement_track_module())
 	timeline.set_action_data(value)
 	canvas.set_preview_time(0.0)
 	_connect_resource_changes()
 	_update_status()
+
+func _get_movement_track_module() -> MovementModule:
+	if action_data == null:
+		return null
+	for module in action_data.modules:
+		if module is MovementModule:
+			var movement := module as MovementModule
+			if movement.movement_mode == MovementModule.MovementMode.MOVEMENT_TRACK:
+				return movement
+	return null
+
+
+func _create_movement_track_panel() -> void:
+	movement_track_panel = PanelContainer.new()
+	movement_track_panel.name = "MovementTrackFloatingPanel"
+	movement_track_panel.set_script(MOVEMENT_TRACK_PANEL_SCRIPT)
+	movement_track_panel.position = Vector2(maxf(canvas.size.x - 340.0, 12.0), 12.0)
+	movement_track_panel.size = Vector2(320.0, 430.0)
+	movement_track_panel.custom_minimum_size = Vector2(320.0, 320.0)
+	movement_track_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	canvas.add_child(movement_track_panel)
+
 
 func _connect_resource_changes() -> void:
 	if action_data == null:
