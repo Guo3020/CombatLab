@@ -1112,13 +1112,16 @@ func _update_movement_track(
 		result["active"] = false
 		return result
 
+	# MovementTrack X follows the facing direction captured when the Action started.
+	# Y uses intuitive authoring coordinates: positive is upward, negative is downward.
+	var facing_direction := -1.0 if float(active_movement_request.get("movement_track_facing_direction", 1)) < 0.0 else 1.0
 	var start_displacement := Vector2(
-		x_curve.sample_baked(0.0),
-		y_curve.sample_baked(0.0)
+		x_curve.sample_baked(0.0) * facing_direction,
+		-y_curve.sample_baked(0.0)
 	)
 	var next_displacement := Vector2(
-		x_curve.sample_baked(progress),
-		y_curve.sample_baked(progress)
+		x_curve.sample_baked(progress) * facing_direction,
+		-y_curve.sample_baked(progress)
 	) - start_displacement
 
 	var frame_displacement := next_displacement - movement_track_displacement
