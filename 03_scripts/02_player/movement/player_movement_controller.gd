@@ -6,6 +6,24 @@ class_name PlayerMovementController
 # 枚举
 # ==================================================
 
+enum MovementMode {
+	NONE,
+	DASH,
+	VELOCITY_OVERRIDE
+}
+
+enum PhaseMode {
+	SPEED_PROTECTION,
+	LINEAR_INTERPOLATION,
+	DIRECT_SET
+}
+
+enum EndVelocityMode {
+	PRESERVE_CURRENT,
+	SET_SPEED
+}
+
+
 # ==================================================
 # 基础移动
 # ==================================================
