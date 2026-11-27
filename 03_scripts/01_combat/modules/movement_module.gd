@@ -258,13 +258,24 @@ func _init() -> void:
 
 
 func _initialize_flat_track_curve(curve: Curve) -> void:
-	if curve == null or curve.get_point_count() < 2:
+	if curve == null:
 		return
+
+	if curve.get_point_count() == 0:
+		curve.add_point(Vector2(0.0, 0.0))
+		curve.add_point(Vector2(1.0, 0.0))
+	elif curve.get_point_count() == 1:
+		curve.set_point_position(0, Vector2(0.0, 0.0))
+		curve.add_point(Vector2(1.0, 0.0))
+	else:
+		curve.set_point_position(0, Vector2(0.0, 0.0))
+		curve.set_point_position(
+			curve.get_point_count() - 1,
+			Vector2(1.0, 0.0)
+		)
 
 	curve.min_value = -1000.0
 	curve.max_value = 1000.0
-	curve.set_point_value(0, 0.0)
-	curve.set_point_value(curve.get_point_count() - 1, 0.0)
 
 
 # ==================================================
