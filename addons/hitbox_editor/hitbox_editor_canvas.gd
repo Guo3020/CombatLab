@@ -2,6 +2,7 @@
 extends Control
 
 signal hitbox_selected(hitbox: HitboxData)
+signal hitbox_context_requested(hitbox: HitboxData)
 
 const BASE_SCALE := 0.75
 const MIN_SCALE := 0.15
@@ -232,6 +233,11 @@ func _gui_input(event: InputEvent) -> void:
 				if drag_mode == DragMode.PAN:
 					drag_mode = DragMode.NONE
 			accept_event()
+		elif button.button_index == MOUSE_BUTTON_RIGHT and button.pressed and action_data != null:
+			var hitbox := _pick(button.position)
+			if hitbox != null:
+				hitbox_context_requested.emit(hitbox)
+				accept_event()
 		elif button.button_index == MOUSE_BUTTON_LEFT and button.pressed and action_data != null:
 			_begin_left_drag(button.position)
 			accept_event()
