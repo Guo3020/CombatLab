@@ -184,7 +184,7 @@ func _process(_delta: float) -> void:
 		tree_panel.custom_minimum_size.x = new_width
 		_position_resize_grip()
 
-	if movement_track_panel.movement != _get_movement_track_module():
+	if movement_track_panel.get("movement") != _get_movement_track_module():
 		movement_track_panel.call("set_movement", _get_movement_track_module())
 
 	if action_data == null:
@@ -270,7 +270,7 @@ func set_action_data(value: CombatActionData) -> void:
 
 	_refresh_tree()
 	canvas.set_action_data(value)
-	movement_track_panel.set_movement(_get_movement_track_module())
+	movement_track_panel.call("set_movement", _get_movement_track_module())
 	timeline.set_action_data(value)
 	canvas.set_preview_time(0.0)
 	_connect_resource_changes()
