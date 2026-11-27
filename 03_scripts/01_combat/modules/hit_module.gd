@@ -5,10 +5,6 @@ class_name HitModule
 var hit_instance_runtime: Array[Dictionary] = []
 
 
-func _init() -> void:
-	module_name = "Hit"
-
-
 func get_module_id() -> StringName:
 	return &"hit"
 
