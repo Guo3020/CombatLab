@@ -87,8 +87,10 @@ func _validate_property(property: Dictionary) -> void:
 	]
 
 	var movement_track_properties: Array[StringName] = [
+		&"movement_track_duration",
 		&"movement_track_x",
-		&"movement_track_y"
+		&"movement_track_y",
+		&"movement_track_collision_strategy"
 	]
 
 	if property_name in dash_properties and not is_dash_mode:
