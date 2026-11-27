@@ -396,7 +396,7 @@ func _on_collision_changed(index: int) -> void:
 
 
 func _on_range_button_pressed(graph: CurveGraph, button: Button, opposite_button: Button) -> void:
-	_open_number_dialog("纵轴最大位移绝对值", graph.value_range, 1.0, 100000.0, func(value: float) -> void:
+	_open_number_dialog("纵轴最大位移绝对值", graph.value_range, AXIS_RANGE_MIN, AXIS_RANGE_MAX, func(value: float) -> void:
 		graph.value_range = value
 		button.text = "+%.0f" % value
 		opposite_button.text = "-%.0f" % value
@@ -407,7 +407,7 @@ func _on_range_button_pressed(graph: CurveGraph, button: Button, opposite_button
 func _on_duration_axis_pressed() -> void:
 	if movement == null:
 		return
-	_open_number_dialog("时间范围（秒）", movement.movement_track_duration, 0.01, 100000.0, func(value: float) -> void:
+	_open_number_dialog("时间范围（秒）", movement.movement_track_duration, DURATION_MIN, DURATION_MAX, func(value: float) -> void:
 		duration_spin.set_value_no_signal(value)
 		_on_duration_changed(value)
 	)
