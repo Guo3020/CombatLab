@@ -91,9 +91,6 @@ common/physics_ticks_per_second=60
 2d_physics/layer_2="World Geometry"
 2d_physics/layer_3="Player"
 2d_physics/layer_4="Enemy"
-2d_physics/layer_5="Hitbox"
-2d_physics/layer_6="Hurtbox"
-
 [rendering]
 
 rendering_device/driver.windows="d3d12"
