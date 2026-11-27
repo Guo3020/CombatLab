@@ -184,6 +184,9 @@ func _process(_delta: float) -> void:
 		tree_panel.custom_minimum_size.x = new_width
 		_position_resize_grip()
 
+	if movement_track_panel.movement != _get_movement_track_module():
+		movement_track_panel.set_movement(_get_movement_track_module())
+
 	if action_data == null:
 		return
 
