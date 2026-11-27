@@ -3,6 +3,9 @@ extends CharacterBody2D
 class_name EnemyBase
 
 
+signal debug_damage_number(world_position: Vector2, amount: float)
+
+
 @export_group("生命值")
 @export var max_health: float = 100.0
 
