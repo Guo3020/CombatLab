@@ -103,6 +103,25 @@ func _get_movement_track_module() -> MovementModule:
 	return null
 
 
+func _get_preview_facing_direction() -> float:
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null:
+		return 1.0
+
+	var player: Node = root
+	if not root.is_in_group("player"):
+		for candidate in root.find_children("*", "CharacterBody2D", true, false):
+			if candidate.is_in_group("player"):
+				player = candidate
+				break
+
+	var facing_value: Variant = player.get("facing_direction")
+	if typeof(facing_value) == TYPE_FLOAT or typeof(facing_value) == TYPE_INT:
+		if not is_zero_approx(float(facing_value)):
+			return signf(float(facing_value))
+	return 1.0
+
+
 func _get_preview_actor_offset() -> Vector2:
 	var movement := _get_movement_track_module()
 	if movement == null:
@@ -115,12 +134,13 @@ func _get_preview_actor_offset() -> Vector2:
 	var progress := clampf(preview_time / duration, 0.0, 1.0)
 	# The editor preview faces right by default. Runtime X is mirrored
 	# from the facing direction captured by the Action; Y is authored up-positive.
+	var facing_direction := _get_preview_facing_direction()
 	var start_offset := Vector2(
-		movement.movement_track_x.sample_baked(0.0),
+		movement.movement_track_x.sample_baked(0.0) * facing_direction,
 		-movement.movement_track_y.sample_baked(0.0)
 	)
 	var current_offset := Vector2(
-		movement.movement_track_x.sample_baked(progress),
+		movement.movement_track_x.sample_baked(progress) * facing_direction,
 		-movement.movement_track_y.sample_baked(progress)
 	)
 	return current_offset - start_offset
@@ -209,15 +229,16 @@ func _draw_movement_track_path() -> void:
 		return
 
 	var points := PackedVector2Array()
+	var facing_direction := _get_preview_facing_direction()
 	var start_offset := Vector2(
-		movement.movement_track_x.sample_baked(0.0),
+		movement.movement_track_x.sample_baked(0.0) * facing_direction,
 		-movement.movement_track_y.sample_baked(0.0)
 	)
 
 	for index in range(21):
 		var progress := float(index) / 20.0
 		var displacement := Vector2(
-			movement.movement_track_x.sample_baked(progress),
+			movement.movement_track_x.sample_baked(progress) * facing_direction,
 			-movement.movement_track_y.sample_baked(progress)
 		) - start_offset
 		points.append(actor_origin + displacement * view_scale)
