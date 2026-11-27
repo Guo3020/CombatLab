@@ -411,7 +411,7 @@ func _to_hitbox_local(mouse: Vector2, hitbox: HitboxData) -> Vector2:
 	return _to_hitbox_local_at(mouse, hitbox.offset, hitbox.rotation_degrees)
 
 func _to_hitbox_local_at(mouse: Vector2, offset: Vector2, rotation_degrees: float) -> Vector2:
-	var center := actor_origin + offset * view_scale
+	var center := actor_origin + (preview_actor_offset + offset) * view_scale
 	return ((mouse - center) / view_scale).rotated(-deg_to_rad(rotation_degrees))
 
 func _pick_handle(mouse: Vector2) -> DragMode:
