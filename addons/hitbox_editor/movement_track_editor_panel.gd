@@ -14,6 +14,11 @@ var x_graph: CurveGraph
 var y_graph: CurveGraph
 var header: HBoxContainer
 var dragging := false
+var resizing := false
+var user_positioned := false
+var resize_grip: Control
+var resize_mouse := Vector2.ZERO
+var resize_size := Vector2.ZERO
 var drag_origin := Vector2.ZERO
 var panel_origin := Vector2.ZERO
 var number_dialog: AcceptDialog
@@ -179,7 +184,17 @@ func _ready() -> void:
 
 	number_dialog = AcceptDialog.new()
 	number_dialog.title = "输入数值"
-	add_child(number_dialog)
+	get_parent().add_child(number_dialog)
+
+	resize_grip = Control.new()
+	resize_grip.custom_minimum_size = Vector2(8, 8)
+	resize_grip.mouse_filter = Control.MOUSE_FILTER_STOP
+	resize_grip.mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
+	resize_grip.gui_input.connect(_on_resize_input)
+	add_child(resize_grip)
+	resized.connect(_position_resize_grip)
+	_position_resize_grip()
+
 	number_spin = SpinBox.new()
 	number_spin.min_value = 0.01
 	number_spin.max_value = 100000.0
@@ -196,7 +211,7 @@ func _make_label(value: String) -> Label:
 	return label
 
 
-func _make_graph_section(title_text: String, graph: CurveGraph, is_x: bool) -> VBoxContainer:
+func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> VBoxContainer:
 	var section := VBoxContainer.new()
 	var heading := HBoxContainer.new()
 	section.add_child(heading)
@@ -304,3 +319,31 @@ func _on_header_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	if dragging:
 		position = panel_origin + get_global_mouse_position() - drag_origin
+		user_positioned = true
+	if resizing:
+		var next_size := resize_size + get_global_mouse_position() - resize_mouse
+		size = Vector2(clampf(next_size.x, 280.0, 620.0), clampf(next_size.y, 300.0, 760.0))
+		custom_minimum_size = Vector2(size.x, 300.0)
+		_position_resize_grip()
+	if not user_positioned and get_parent() != null and get_parent().size.x > size.x + 24.0:
+		position.x = get_parent().size.x - size.x - 12.0
+
+
+func _position_resize_grip() -> void:
+	if not is_instance_valid(resize_grip):
+		return
+	resize_grip.position = Vector2(size.x - 10.0, size.y - 10.0)
+	resize_grip.size = Vector2(10.0, 10.0)
+
+
+func _on_resize_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			resizing = true
+			resize_mouse = get_global_mouse_position()
+			resize_size = size
+		else:
+			resizing = false
+		resize_grip.accept_event()
+	elif event is InputEventMouseMotion and resizing:
+		resize_grip.accept_event()
