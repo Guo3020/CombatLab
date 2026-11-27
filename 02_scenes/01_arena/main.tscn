@@ -65,7 +65,7 @@ color = Color(0.68298316, 0.28592467, 0.39345086, 1)
 polygon = PackedVector2Array(1.4305115e-05, 1.5258789e-05, 256, 7.6293945e-06, 255.9999, -255.99998)
 uv = PackedVector2Array(-8, 64, 248, 63.999992, 247.99988, -152)
 
-[node name="MapBoundary" type="StaticBody2D" parent="." unique_id=350387448]
+[node name="MapBoundary" type="StaticBody2D" parent="."]
 collision_layer = 1
 collision_mask = 0
 
