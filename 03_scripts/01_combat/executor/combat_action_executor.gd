@@ -141,7 +141,6 @@ func start_action(
 
 		current_context.module_debug_data.append({
 			"module_id": String(hit_module.get_module_id()),
-			"module_name": hit_module.module_name,
 			"enabled": true,
 			"running": true
 		})
@@ -167,7 +166,6 @@ func start_action(
 		# 记录模块调试信息。
 		current_context.module_debug_data.append({
 			"module_id": String(module.get_module_id()),
-			"module_name": module.module_name,
 			"enabled": true,
 			"running": true
 		})
