@@ -190,9 +190,6 @@ func _process(_delta: float) -> void:
 	if action_data == null:
 		return
 
-	canvas.queue_redraw()
-	timeline.queue_redraw()
-
 	var signature := _build_tree_signature()
 	if signature != last_tree_signature:
 		_refresh_tree()
