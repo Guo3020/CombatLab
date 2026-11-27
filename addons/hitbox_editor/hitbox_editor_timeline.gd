@@ -86,7 +86,7 @@ func _get_movement_track_module() -> MovementModule:
 
 func _draw() -> void:
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0.105, 0.115, 0.135), true)
-	draw_string(ThemeDB.fallback_font, Vector2(12, 18), "ACTION 时间轴  |  帧数基准：%d FPS" % CombatTimebase.PHYSICS_TICK_RATE, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.82, 0.88, 0.95))
+	draw_string(ThemeDB.fallback_font, Vector2(12, 18), "ACTION 时间轴  |  逻辑帧基准：%d Hz" % CombatTimebase.PHYSICS_TICK_RATE, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.82, 0.88, 0.95))
 	draw_string(ThemeDB.fallback_font, Vector2(size.x - 250, 18), "左键：预览 / 选择    中键：平移    滚轮：缩放", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.62, 0.68, 0.76))
 
 	if action_data == null:
