@@ -79,6 +79,7 @@ func _ready() -> void:
 	timeline.custom_minimum_size = Vector2(500, 132)
 	timeline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	timeline.hit_instance_selected.connect(_on_timeline_selected)
+	timeline.preview_time_changed.connect(_on_timeline_preview_time_changed)
 	layout.add_child(timeline)
 
 	status = Label.new()
@@ -264,6 +265,7 @@ func set_action_data(value: CombatActionData) -> void:
 	_refresh_tree()
 	canvas.set_action_data(value)
 	timeline.set_action_data(value)
+	canvas.set_preview_time(0.0)
 	_connect_resource_changes()
 	_update_status()
 
@@ -491,6 +493,13 @@ func _on_canvas_selected(value: HitboxData) -> void:
 	_inspect_selected()
 	_update_status()
 
+func _on_timeline_preview_time_changed(value: float) -> void:
+	if is_instance_valid(canvas):
+		canvas.set_preview_time(value)
+	if is_instance_valid(status):
+		_update_status()
+
+
 func _on_timeline_selected(value: HitInstanceData) -> void:
 	selected_instance = value
 	selected_hitbox = null
@@ -548,9 +557,9 @@ func _update_status() -> void:
 	if selected_hitbox != null:
 		status.text = "%s  |  判定框偏移：%s" % [label, str(selected_hitbox.offset)]
 	elif selected_instance != null:
-		status.text = "%s  |  命中实例：%.2f - %.2f 秒" % [label, selected_instance.start_time, selected_instance.end_time]
+		status.text = "%s  |  命中实例：%.2f - %.2f 秒  |  预览：%dF" % [label, selected_instance.start_time, selected_instance.end_time, CombatTimebase.seconds_to_frames(timeline.preview_time)]
 	else:
-		status.text = "%s  |  请在悬浮列表中选择命中实例或判定框。" % label
+		status.text = "%s  |  预览：%dF  |  请在悬浮列表中选择命中实例或判定框。" % [label, CombatTimebase.seconds_to_frames(timeline.preview_time)]
 
 func _show_empty() -> void:
 	status.text = "请在文件系统中选择一个 CombatActionData 资源。"
