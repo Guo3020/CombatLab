@@ -35,6 +35,13 @@ func _ready() -> void:
 func set_action_data(value: CombatActionData) -> void:
 	action_data = value
 	selected_instance = null
+	if action_data == null:
+		custom_minimum_size.y = 150.0
+	else:
+		custom_minimum_size.y = maxf(
+			150.0,
+			HIT_ROW_START_Y + float(action_data.hit_instances.size()) * ROW_HEIGHT + 16.0
+		)
 	time_offset = 0.0
 	time_scale = DEFAULT_SCALE
 	preview_time = 0.0
