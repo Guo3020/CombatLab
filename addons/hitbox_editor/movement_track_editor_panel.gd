@@ -8,6 +8,8 @@ const PANEL_WIDTH := 320.0
 
 var movement: MovementModule
 var scroll: ScrollContainer
+var root_layout: VBoxContainer
+var duration_axis_buttons: Array[Button] = []
 var duration_spin: SpinBox
 var collision_option: OptionButton
 var x_graph: CurveGraph
@@ -131,13 +133,13 @@ func _ready() -> void:
 	style.content_margin_bottom = 8
 	add_theme_stylebox_override("panel", style)
 
-	var layout := VBoxContainer.new()
-	add_child(layout)
+	root_layout = VBoxContainer.new()
+	add_child(root_layout)
 	header = HBoxContainer.new()
 	header.mouse_filter = Control.MOUSE_FILTER_STOP
 	header.mouse_default_cursor_shape = Control.CURSOR_MOVE
 	header.gui_input.connect(_on_header_input)
-	layout.add_child(header)
+	root_layout.add_child(header)
 	var title := Label.new()
 	title.text = "MovementTrack"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -150,7 +152,7 @@ func _ready() -> void:
 	scroll = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	layout.add_child(scroll)
+	root_layout.add_child(scroll)
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(content)
@@ -186,14 +188,17 @@ func _ready() -> void:
 	number_dialog.title = "输入数值"
 	get_parent().add_child(number_dialog)
 
+	var resize_row := HBoxContainer.new()
+	root_layout.add_child(resize_row)
+	var resize_spacer := Control.new()
+	resize_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	resize_row.add_child(resize_spacer)
 	resize_grip = Control.new()
-	resize_grip.custom_minimum_size = Vector2(8, 8)
+	resize_grip.custom_minimum_size = Vector2(12, 12)
 	resize_grip.mouse_filter = Control.MOUSE_FILTER_STOP
 	resize_grip.mouse_default_cursor_shape = Control.CURSOR_FDIAGSIZE
 	resize_grip.gui_input.connect(_on_resize_input)
-	add_child(resize_grip)
-	resized.connect(_position_resize_grip)
-	_position_resize_grip()
+	resize_row.add_child(resize_grip)
 
 	number_spin = SpinBox.new()
 	number_spin.min_value = 0.01
@@ -238,6 +243,7 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	end_button.text = "0.20s"
 	end_button.pressed.connect(_on_duration_axis_pressed)
 	footer.add_child(end_button)
+	duration_axis_buttons.append(end_button)
 	return section
 
 
@@ -252,6 +258,8 @@ func _refresh() -> void:
 	if movement == null:
 		return
 	duration_spin.set_value_no_signal(movement.movement_track_duration)
+	for axis_button in duration_axis_buttons:
+		axis_button.text = "%.2fs" % movement.movement_track_duration
 	collision_option.select(int(movement.movement_track_collision_strategy))
 	x_graph.set_curve(movement.movement_track_x, movement.movement_track_duration, x_graph.value_range)
 	y_graph.set_curve(movement.movement_track_y, movement.movement_track_duration, y_graph.value_range)
@@ -332,8 +340,7 @@ func _process(_delta: float) -> void:
 func _position_resize_grip() -> void:
 	if not is_instance_valid(resize_grip):
 		return
-	resize_grip.position = Vector2(size.x - 10.0, size.y - 10.0)
-	resize_grip.size = Vector2(10.0, 10.0)
+	resize_grip.custom_minimum_size = Vector2(12.0, 12.0)
 
 
 func _on_resize_input(event: InputEvent) -> void:
