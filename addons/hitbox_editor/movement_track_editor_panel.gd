@@ -4,6 +4,14 @@ extends PanelContainer
 class_name MovementTrackEditorPanel
 
 const PANEL_WIDTH := 320.0
+const MIN_PANEL_WIDTH := 280.0
+const MAX_PANEL_WIDTH := 900.0
+const MIN_PANEL_HEIGHT := 300.0
+const MAX_PANEL_HEIGHT := 1000.0
+const DURATION_MIN := 0.01
+const DURATION_MAX := 1000000000.0
+const AXIS_RANGE_MIN := 1.0
+const AXIS_RANGE_MAX := 1000000000.0
 
 var movement: MovementModule
 var scroll: ScrollContainer
@@ -97,7 +105,7 @@ class CurveGraph extends Control:
 		queue_redraw()
 
 	func set_value_range(value: float) -> void:
-		value_range = clampf(value, 1.0, 1000000000.0)
+		value_range = clampf(value, AXIS_RANGE_MIN, AXIS_RANGE_MAX)
 		queue_redraw()
 
 	func _curve_to_screen(point: Vector2) -> Vector2:
@@ -456,14 +464,14 @@ func _process(_delta: float) -> void:
 		var next_width := resize_size.x
 		var next_height := resize_size.y
 		if resize_mode == "left":
-			next_width = clampf(resize_size.x - mouse_delta.x, 280.0, 900.0)
+			next_width = clampf(resize_size.x - mouse_delta.x, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH)
 			position.x = resize_position.x + resize_size.x - next_width
 		elif resize_mode == "right" or resize_mode == "corner":
-			next_width = clampf(resize_size.x + mouse_delta.x, 280.0, 900.0)
+			next_width = clampf(resize_size.x + mouse_delta.x, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH)
 		if resize_mode == "bottom" or resize_mode == "corner":
-			next_height = clampf(resize_size.y + mouse_delta.y, 300.0, 1000.0)
+			next_height = clampf(resize_size.y + mouse_delta.y, MIN_PANEL_HEIGHT, MAX_PANEL_HEIGHT)
 		size = Vector2(next_width, next_height)
-		custom_minimum_size = Vector2(next_width, 300.0)
+		custom_minimum_size = Vector2(next_width, MIN_PANEL_HEIGHT)
 	if not user_positioned and get_parent() != null and get_parent().size.x > size.x + 24.0:
 		position.x = get_parent().size.x - size.x - 12.0
 
