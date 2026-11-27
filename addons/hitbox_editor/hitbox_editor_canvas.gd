@@ -117,7 +117,7 @@ func _get_preview_actor_offset() -> Vector2:
 	# from the facing direction captured by the Action; Y is authored up-positive.
 	var start_offset := Vector2(
 		movement.movement_track_x.sample_baked(0.0),
-		--movement.movement_track_y.sample_baked(0.0)
+		-movement.movement_track_y.sample_baked(0.0)
 	)
 	var current_offset := Vector2(
 		movement.movement_track_x.sample_baked(progress),
