@@ -40,7 +40,6 @@ override_direction_source = 0
 override_custom_direction = Vector2(1, 0)
 override_suppress_gravity = false
 module_enabled = true
-module_name = "新模块"
 metadata/_custom_type_script = "uid://dp5gttsshciy0"
 
 [resource]
