@@ -169,6 +169,8 @@ For each HitInstance:
 
 Data Resources must not execute collision logic or manipulate time.
 
+Damage debug numbers are emitted from the hit target, not the attacker. `CombatDebugOverlay` listens to Player and Enemy target signals so incoming and outgoing hits display at the target position.
+
 `HitManager` retains its dedicated target-interruption responsibility:
 - Compare incoming interrupt level with target super armor level.
 - Cancel/interfere with target Action/Combo as appropriate.
