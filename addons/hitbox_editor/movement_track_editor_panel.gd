@@ -119,6 +119,7 @@ class CurveGraph extends Control:
 
 
 func _ready() -> void:
+	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	custom_minimum_size = Vector2(PANEL_WIDTH, 320)
 	size = Vector2(PANEL_WIDTH, 430)
@@ -248,6 +249,7 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 
 
 func set_movement(value: MovementModule) -> void:
+	visible = value != null
 	if movement == value:
 		return
 	if movement != null and movement.changed.is_connected(_refresh):
