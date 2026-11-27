@@ -31,6 +31,8 @@ var hidden_hitboxes: Dictionary = {}
 var view_scale := BASE_SCALE
 var view_pan := Vector2.ZERO
 var actor_origin := Vector2.ZERO
+var preview_time: float = 0.0
+var preview_actor_offset: Vector2 = Vector2.ZERO
 
 var drag_mode := DragMode.NONE
 var drag_pending := false
@@ -81,9 +83,49 @@ func _is_hitbox_visible(hitbox: HitboxData) -> bool:
 func refresh_view() -> void:
 	queue_redraw()
 
+
+func set_preview_time(value: float) -> void:
+	preview_time = maxf(value, 0.0)
+	preview_actor_offset = _get_preview_actor_offset()
+	queue_redraw()
+
+
+func _get_movement_track_module() -> MovementModule:
+	if action_data == null:
+		return null
+
+	for module in action_data.modules:
+		if module is MovementModule:
+			var movement := module as MovementModule
+			if movement.movement_mode == MovementModule.MovementMode.MOVEMENT_TRACK:
+				return movement
+
+	return null
+
+
+func _get_preview_actor_offset() -> Vector2:
+	var movement := _get_movement_track_module()
+	if movement == null:
+		return Vector2.ZERO
+
+	var duration := maxf(movement.movement_track_duration, 0.01)
+	var progress := clampf(preview_time / duration, 0.0, 1.0)
+	var start_offset := Vector2(
+		movement.movement_track_x.sample_baked(0.0),
+		movement.movement_track_y.sample_baked(0.0)
+	)
+	var current_offset := Vector2(
+		movement.movement_track_x.sample_baked(progress),
+		movement.movement_track_y.sample_baked(progress)
+	)
+	return current_offset - start_offset
+
+
 func _draw() -> void:
 	actor_origin = size * 0.5 + Vector2(-80, 0) + view_pan
+	preview_actor_offset = _get_preview_actor_offset()
 	_draw_grid()
+	_draw_movement_track_path()
 	_draw_actor()
 	_draw_origin()
 
@@ -138,7 +180,7 @@ func _draw_actor() -> void:
 	if body.shape == null:
 		return
 
-	var center := actor_origin + body.position * view_scale
+	var center := actor_origin + (preview_actor_offset + body.position) * view_scale
 	var shape := body.shape
 	if shape is RectangleShape2D:
 		var rectangle := shape as RectangleShape2D
@@ -152,6 +194,33 @@ func _draw_actor() -> void:
 		draw_arc(center, circle.radius * view_scale, 0, TAU, 48, Color(0.3, 0.7, 0.95, 0.7), 1.5)
 
 	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(-25, 58) * view_scale, "Player1", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.65, 0.76, 0.86))
+
+func _draw_movement_track_path() -> void:
+	var movement := _get_movement_track_module()
+	if movement == null:
+		return
+
+	var points := PackedVector2Array()
+	var start_offset := Vector2(
+		movement.movement_track_x.sample_baked(0.0),
+		movement.movement_track_y.sample_baked(0.0)
+	)
+
+	for index in range(21):
+		var progress := float(index) / 20.0
+		var displacement := Vector2(
+			movement.movement_track_x.sample_baked(progress),
+			movement.movement_track_y.sample_baked(progress)
+		) - start_offset
+		points.append(actor_origin + displacement * view_scale)
+
+	if points.size() >= 2:
+		draw_polyline(points, Color(0.28, 0.9, 0.7, 0.8), 2.0)
+
+	var preview_position := actor_origin + preview_actor_offset * view_scale
+	draw_circle(preview_position, 4.0, Color(0.35, 1.0, 0.8))
+	draw_string(ThemeDB.fallback_font, preview_position + Vector2(8, -8), "%dF" % CombatTimebase.seconds_to_frames(preview_time), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.55, 1.0, 0.82))
+
 
 func _draw_origin() -> void:
 	var c := Color(1, 0.82, 0.25, 0.95)
@@ -167,7 +236,7 @@ func _get_hitbox_color(instance_index: int, hitbox_index: int) -> Color:
 	return Color.from_hsv(hue, 0.72, value)
 
 func _draw_hitbox(hitbox: HitboxData, selected: bool, base_color: Color) -> void:
-	var center := actor_origin + hitbox.offset * view_scale
+	var center := actor_origin + (preview_actor_offset + hitbox.offset) * view_scale
 	draw_set_transform(center, deg_to_rad(hitbox.rotation_degrees), Vector2.ONE * view_scale)
 
 	var fill := Color(base_color.r, base_color.g, base_color.b, 0.24 if selected else 0.11)
