@@ -49,7 +49,8 @@ func set_selected_instance(value: HitInstanceData) -> void:
 
 
 func set_preview_time(value: float) -> void:
-	preview_time = _clamp_preview_time(value)
+	var frame := CombatTimebase.seconds_to_frames(_clamp_preview_time(value))
+	preview_time = _clamp_preview_time(CombatTimebase.frames_to_seconds(frame))
 	queue_redraw()
 
 
@@ -238,7 +239,9 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _scrub_and_select(position: Vector2) -> void:
-	preview_time = _clamp_preview_time(time_offset + (position.x - LEFT) / time_scale)
+	var requested_time := _clamp_preview_time(time_offset + (position.x - LEFT) / time_scale)
+	var frame := CombatTimebase.seconds_to_frames(requested_time)
+	preview_time = _clamp_preview_time(CombatTimebase.frames_to_seconds(frame))
 	preview_time_changed.emit(preview_time)
 
 	if position.y >= HIT_ROW_START_Y:
