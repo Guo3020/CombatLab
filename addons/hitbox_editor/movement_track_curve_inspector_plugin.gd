@@ -14,6 +14,6 @@ func _parse_property(
 	_usage_flags: int,
 	_wide: bool
 ) -> bool:
-	if object is Curve and name == "bake_resolution":
+	if object is Curve and name in ["bake_resolution", "min_domain", "max_domain", "min_value", "max_value"]:
 		return true
 	return false
