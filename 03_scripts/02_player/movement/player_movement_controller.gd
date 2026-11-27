@@ -125,6 +125,12 @@ var active_movement_request: Dictionary = {}
 
 var movement_end_velocity_settled: bool = false
 
+# IGNORE_WORLD 临时移除 Layer 2 时，保存 Action 开始前的原始 Mask。
+var movement_track_original_collision_mask: int = -1
+var movement_track_collision_mask_modified: bool = false
+var movement_track_progress: float = 0.0
+var movement_track_displacement: Vector2 = Vector2.ZERO
+
 
 # ==================================================
 # Movement 运行计时与阶段状态
