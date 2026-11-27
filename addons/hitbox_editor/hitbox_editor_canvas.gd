@@ -113,13 +113,15 @@ func _get_preview_actor_offset() -> Vector2:
 
 	var duration := maxf(movement.movement_track_duration, 0.01)
 	var progress := clampf(preview_time / duration, 0.0, 1.0)
+	# The editor preview faces right by default. Runtime X is mirrored
+	# from the facing direction captured by the Action; Y is authored up-positive.
 	var start_offset := Vector2(
 		movement.movement_track_x.sample_baked(0.0),
-		movement.movement_track_y.sample_baked(0.0)
+		-movement.movement_track_y.sample_baked(0.0)
 	)
 	var current_offset := Vector2(
 		movement.movement_track_x.sample_baked(progress),
-		movement.movement_track_y.sample_baked(progress)
+		-movement.movement_track_y.sample_baked(progress)
 	)
 	return current_offset - start_offset
 
