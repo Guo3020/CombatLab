@@ -186,8 +186,12 @@ func _process(_delta: float) -> void:
 
 	if movement_track_panel.get("movement") != _get_movement_track_module():
 		movement_track_panel.call("set_movement", _get_movement_track_module())
+
 	if action_data == null:
 		return
+
+	canvas.queue_redraw()
+	timeline.queue_redraw()
 
 	var signature := _build_tree_signature()
 	if signature != last_tree_signature:

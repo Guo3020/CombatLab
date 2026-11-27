@@ -251,8 +251,7 @@ var override_speed: float = 240.0
 
 @export_group("MovementTrack")
 
-@export_range(0.01, 5.0, 0.01)
-var movement_track_duration: float = 0.2
+@export var movement_track_duration: float = 0.2
 
 @export var movement_track_x: Curve = Curve.new()
 
@@ -368,12 +367,6 @@ func on_module_start(context: RefCounted) -> void:
 		})
 
 	elif movement_mode == MovementMode.MOVEMENT_TRACK:
-		if movement_track_x != null:
-			movement_track_x.resource_name = "MovementTrack X Curve"
-			movement_track_x.bake_resolution = 8
-		if movement_track_y != null:
-			movement_track_y.resource_name = "MovementTrack Y Curve"
-			movement_track_y.bake_resolution = 8
 		movement_request.merge({
 			"movement_track_duration": movement_track_duration,
 			"movement_track_facing_direction": action_context.facing_direction,

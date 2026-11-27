@@ -2,48 +2,24 @@
 
 [ext_resource type="Script" uid="uid://bx3y8p324q4xu" path="res://03_scripts/01_combat/data/hit_instance_data.gd" id="1_htf8t"]
 [ext_resource type="Script" uid="uid://bj3diw4xg6hf0" path="res://03_scripts/01_combat/modules/combat_action_module.gd" id="1_tfeyi"]
-[ext_resource type="Script" uid="uid://dsiqusg72sqha" path="res://03_scripts/01_combat/data/hitbox_data.gd" id="2_tfeyi"]
 [ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="4_5bglr"]
-[ext_resource type="Script" uid="uid://dp5gttsshciy0" path="res://03_scripts/01_combat/modules/movement_module.gd" id="4_htf8t"]
-
-[sub_resource type="Resource" id="Resource_tfeyi"]
-script = ExtResource("2_tfeyi")
 
 [sub_resource type="Resource" id="Resource_HitInstance"]
 script = ExtResource("1_htf8t")
-hitboxes = Array[ExtResource("2_tfeyi")]([SubResource("Resource_tfeyi")])
 attacker_time_freeze_duration = 0.6
 target_time_freeze_duration = 0.6166666666666667
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
-[sub_resource type="Curve" id="Curve_bcveu"]
-resource_name = "MovementTrack Curve"
-_limits = [-1000.0, 1000.0, 0.0, 1.0]
-bake_resolution = 8
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 2
-
-[sub_resource type="Curve" id="Curve_5bglr"]
-resource_name = "MovementTrack Curve"
-_limits = [-1000.0, 1000.0, 0.0, 1.0]
-bake_resolution = 8
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
-point_count = 2
-
-[sub_resource type="Resource" id="Resource_wrdwy"]
-script = ExtResource("4_htf8t")
-movement_track_x = SubResource("Curve_bcveu")
-movement_track_y = SubResource("Curve_5bglr")
-
 [resource]
+collision_mask = 4
 script = ExtResource("4_5bglr")
 action_id = &"enemy_combo_01"
 action_name = "怪物连击1"
+hit_module_enabled = true
+hit_instances = Array[ExtResource("1_htf8t")]([SubResource("Resource_HitInstance")])
 startup = 1.26
 active = 1.16
 recovery = 0.0
 input_window = 0.6
-hit_module_enabled = true
-hit_instances = Array[ExtResource("1_htf8t")]([SubResource("Resource_HitInstance")])
-modules = Array[ExtResource("1_tfeyi")]([SubResource("Resource_wrdwy")])
+modules = Array[ExtResource("1_tfeyi")]([])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"

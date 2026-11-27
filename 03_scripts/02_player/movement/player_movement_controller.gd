@@ -591,15 +591,12 @@ func notify_movement_action_finished(
 					"movement_mode",
 					MovementMode.NONE
 				)
-			) == MovementMode.NONE or int(
-				active_movement_request.get(
-					"movement_mode",
-					MovementMode.NONE
-				)
-			) == MovementMode.MOVEMENT_TRACK:
+			) == MovementMode.NONE:
 				_finish_active_movement(
 					CombatMovementInterface.MovementEndReason.COMPLETED
 				)
+			# MovementTrack is governed by its own duration and finishes itself
+			# when progress reaches 1.0. Normal Action completion must not cut it short.
 
 		CombatMovementInterface.MovementEndReason.CANCELLED:
 			_finish_active_movement(

@@ -11,15 +11,15 @@ size = Vector2(1148, 40)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_r8brs"]
 size = Vector2(252, 35)
 
-[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_g1ohs"]
-custom_solver_bias = 0.256
-points = PackedVector2Array(0, 0, 500, 0, 500, -500)
-
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_map_boundary"]
 size = Vector2(10000, 40)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_map_side_boundary"]
 size = Vector2(40, 3000)
+
+[sub_resource type="ConvexPolygonShape2D" id="ConvexPolygonShape2D_g1ohs"]
+custom_solver_bias = 0.256
+points = PackedVector2Array(0, 0, 500, 0, 500, -500)
 
 [node name="main" type="Node2D" unique_id=2059337878]
 
@@ -68,18 +68,19 @@ color = Color(0.68298316, 0.28592467, 0.39345086, 1)
 polygon = PackedVector2Array(1.4305115e-05, 1.5258789e-05, 256, 7.6293945e-06, 255.9999, -255.99998)
 uv = PackedVector2Array(-8, 64, 248, 63.999992, 247.99988, -152)
 
-[node name="MapBoundary" type="StaticBody2D" parent="." unique_id=1881222668]
+[node name="MapBoundary" type="StaticBody2D" parent="."]
+collision_layer = 1
 collision_mask = 0
 
-[node name="BottomFallGuard" type="CollisionShape2D" parent="MapBoundary" unique_id=923227874]
+[node name="BottomFallGuard" type="CollisionShape2D" parent="MapBoundary"]
 position = Vector2(571, 1050)
 shape = SubResource("RectangleShape2D_map_boundary")
 
-[node name="LeftMapBoundary" type="CollisionShape2D" parent="MapBoundary" unique_id=1689423905]
+[node name="LeftMapBoundary" type="CollisionShape2D" parent="MapBoundary"]
 position = Vector2(-1800, 500)
 shape = SubResource("RectangleShape2D_map_side_boundary")
 
-[node name="RightMapBoundary" type="CollisionShape2D" parent="MapBoundary" unique_id=1733352332]
+[node name="RightMapBoundary" type="CollisionShape2D" parent="MapBoundary"]
 position = Vector2(2950, 500)
 shape = SubResource("RectangleShape2D_map_side_boundary")
 
