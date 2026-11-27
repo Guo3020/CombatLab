@@ -272,30 +272,23 @@ func _on_body_entered(
 
 	var hit_result: int = target_defense.get_hit_result()
 
-	# 无敌状态不记录命中。
+	# 无敌状态不记录命中，也不触发普通 Hitstop。
 	if hit_result == DefenseController.HitResult.INVINCIBLE:
 		if target_defense.should_trigger_time_slow_on_success():
 			CombatTimeManager.trigger_successful_dodge_time_slow()
-		else:
-
 		return
 
 	# 正常命中和免伤都记录目标。
 	hit_targets.append(body)
 	context.target = body
 
-	# 正常命中。
+	# 只有正常命中才扣除生命并检查打断。
 	if hit_result == DefenseController.HitResult.HIT:
 		body.take_damage(hit_instance.damage)
-
 		HitManager.process_hit(
 			context as CombatActionContext,
 			body
 		)
-
-
-	# 免伤。
-	elif hit_result == DefenseController.HitResult.IMMUNE:
 
 	# 正常命中和免伤都会触发本次 HitInstance 的 Hitstop。
 	_apply_hitstop(context, hit_instance)
