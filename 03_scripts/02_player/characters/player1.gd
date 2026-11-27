@@ -609,6 +609,7 @@ func take_damage(damage: float) -> void:
 		return
 
 	current_health = maxf(current_health - damage, 0.0)
+	debug_damage_number.emit(global_position, damage)
 
 	if current_health <= 0.0:
 		die()
@@ -758,7 +759,7 @@ func _on_executor_action_phase_changed(
 
 func _on_executor_action_finished(
 	context: CombatActionContext,
-	was_cancelled: bool
+	_was_cancelled: bool
 ) -> void:
 	if combat_action_executor.current_context != context:
 		return
