@@ -1,6 +1,6 @@
 # CombatLab — Architecture
 
-> Last updated: 2026-11-26  
+> Last updated: 2026-11-27  
 > This document records the currently agreed architecture and important constraints. It is a design reference, not a claim that every planned component is already implemented.
 
 ## 1. Project intent
@@ -40,7 +40,7 @@ CombatActionExecutor
     |
     +--> CombatActionModules
              |
-             +--> HitModule (planned)
+             +--> HitModule (automatically created only when hit_module_enabled is true)
              +--> MovementModule
              +--> DefenseModule
 ```
@@ -87,11 +87,14 @@ Modules that use phase ranges must continue to refer to these three Action phase
 
 ### 6.1 Data model
 
-`CombatActionData` owns an exported array:
+`CombatActionData` owns an explicit `hit_module_enabled` toggle, a shared `collision_mask`, and an exported HitInstance array.
 
-```gdscript
-@export var hit_instances: Array[HitInstanceData] = []
-```
+- `hit_module_enabled` is the only switch that controls whether HitModule runs.
+- `hit_instances` is shown in the Inspector only while the toggle is enabled.
+- `collision_mask` is configured once per Action and shared by every HitInstance. It is shown only while the HitInstance array contains at least one entry.
+- Disabling HitModule hides the array but preserves all configured HitInstance data.
+- Re-enabling it restores the previous data. If the array is empty, one default HitInstance is created automatically.
+- The Executor must not infer enablement from whether the array happens to contain data.
 
 `HitInstanceData` is a Resource representing one hit opportunity. Its agreed conceptual data:
 - `start_time`
@@ -115,13 +118,14 @@ Exact property names/types must follow the actual script and Godot's supported S
 
 - HitInstance times are measured from the beginning of the Action's Active phase.
 - `start_time` and `end_time` define when the instance's hitboxes are enabled.
+- `HitModule` evaluates the overlap between the current Executor update interval and the HitInstance interval. This avoids waiting for an additional update after a time boundary is crossed. Actual Area2D overlap events remain quantized by Godot's physics ticks.
 - Multiple instances may have gaps between them.
 - The Action remains in the single Active phase across those gaps.
 - A HitInstance's multiple Hitboxes are enabled/disabled as one group.
 
 ### 6.3 Runtime collision structure
 
-Chosen structure:
+Implemented runtime structure:
 
 ```text
 Actor
@@ -135,6 +139,16 @@ Actor
 
 This is conceptual; do not create a fixed scene hierarchy prematurely. The runtime Areas may be direct Actor children or later be organized under a container.
 
+Collision layer convention:
+- Layer 1: World
+- Layer 2: Player
+- Layer 3: Enemy
+- Player CharacterBody2D: Layer 2, Mask 1 (World)
+- Enemy CharacterBody2D: Layer 3, Mask 1 (World)
+- Player CombatActionData: Mask 4 (Enemy Layer 3)
+- Enemy CombatActionData: Mask 2 (Player Layer 2)
+- All HitInstance Areas created by the same Action use that ActionData's shared mask.
+
 For each HitInstance:
 - Keep an independent set of targets already hit.
 - Multiple shapes touching the same target must resolve only once for that instance.
@@ -144,7 +158,7 @@ For each HitInstance:
 
 ## 7. HitModule and hit resolution
 
-Planned `HitModule` is a `CombatActionModule` Resource responsible for:
+`HitModule` is automatically created by `CombatActionExecutor` only when `CombatActionData.hit_module_enabled` is true. The presence of HitInstance data alone does not enable it. It is responsible for:
 - Managing HitInstance schedules during Active.
 - Building/configuring runtime Area2D and CollisionShape2D nodes.
 - Enabling/disabling all hitboxes for each instance.
@@ -166,7 +180,7 @@ Do not collapse `HitManager` into `HitModule`.
 
 `CombatTimeManager` remains the single authority for time-freeze execution.
 
-The old `HitstopModule` submits attacker and target freeze requests. Existing behavior automatically adds one frame (`1/60` second) to the target duration when the attacker duration is adjusted. The migration to `HitModule` should preserve this behavior unless explicitly changed after discussion.
+Hitstop configuration belongs to `HitInstanceData`, and `HitModule` submits attacker and target freeze requests to `CombatTimeManager`. The existing behavior that adds one frame (`1/60` second) to target duration when attacker duration is adjusted is preserved. The deprecated `HitstopModule` is removed after its action-resource references are migrated.
 
 TimeFreeze source identity is important:
 - One active freeze record per Actor.
@@ -210,14 +224,13 @@ Preserve source IDs and existing `trigger_time_slow_on_success` behavior. Do not
 
 `CombatDebugOverlay` is the central place for combat debugging. New features should integrate with it rather than adding scattered debug drawing.
 
-Desired/ongoing debug information includes:
-- Startup / Active / Recovery timeline and current phase.
-- HitInstance active windows.
-- Hitbox visualization and ranges.
-- Damage numbers.
-- Movement and velocity state where useful.
+The HitInstance migration provides runtime debug data through the Action Context:
+- Active HitInstance count and total count.
+- Per-instance active state and hit-target count.
+- References to the runtime Area2D nodes, allowing the overlay to draw their actual CollisionShape2D geometry.
+- HitInstance time windows displayed beneath the Action Active timeline.
 
-The overlay should query the existing Actor debug interface rather than hard-coding assumptions about unrelated nodes.
+The overlay should query the existing Executor debug interface rather than hard-coding assumptions about legacy scene nodes.
 
 ## 12. Future editor direction (not current implementation scope)
 
@@ -231,7 +244,7 @@ AnimationPlayer remains responsible for animation keyframes. CombatLab adds comb
 
 Character animation is expected to be in-place while programmatic systems control world position. This keeps animation and movement trajectory independently inspectable.
 
-Do not start an EditorPlugin or visual Hitbox editor as part of the current migration.
+The visual Hit Editor now exists and is considered sufficient for the current workflow. Do not expand it while the HitInstance runtime migration is the active priority.
 
 ## 13. Naming and code conventions
 

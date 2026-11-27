@@ -84,6 +84,9 @@ func start_action(
 				print("==========================================\n")
 			return false
 
+	# HitModule 开启时，确保至少存在一个可编辑的 HitInstance。
+	action_data.ensure_hit_instance()
+
 	# 检查并消耗动作所需能量。
 	if action_data.energy_cost > 0.0:
 		var energy := actor.get_node_or_null("CombatEnergy") as CombatEnergy
@@ -130,14 +133,7 @@ func start_action(
 	# 自动创建 HitModule
 	# --------------------------------------------------
 
-	var has_hit_instances: bool = false
-
-	for hit_instance in action_data.hit_instances:
-		if hit_instance != null:
-			has_hit_instances = true
-			break
-
-	if has_hit_instances:
+	if action_data.hit_module_enabled:
 		var hit_module := HitModule.new()
 
 		active_modules.append(hit_module)

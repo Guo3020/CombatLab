@@ -1,35 +1,48 @@
 # CombatLab — Project Status
 
-> Last updated: 2026-11-26  
+> Last updated: 2026-11-27  
 > Project: Godot 2D side-view action-combat prototype  
-> Status source: project snapshot `20261125_combatlab.zip` plus changes explicitly confirmed by the user in the current conversation.  
-> Important: the snapshot predates some recent edits. Treat the user's latest confirmations as authoritative where they differ.
+> Status source: current GitHub `main` plus user-confirmed test results. The HitInstance migration branch described below is not merged or locally tested yet.
 
 ## 1. Current focus
 
-Implement multi-hit Active windows using `HitInstanceData`, then migrate hit detection and hitstop execution into a unified `HitModule`.
+Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a usability pass (Hitbox stacking order, per-Hitbox colors, visibility toggles, ActionData hierarchy, and canvas context menu) alongside HitInstance runtime validation.
 
-The intended implementation order is incremental:
-1. Add data Resources (`HitboxData`, `HitInstanceData`).
-2. Add the HitInstance list to `CombatActionData`.
-3. Make the action system automatically provide hit capability when HitInstances are configured.
-4. Implement `HitModule` scheduling, runtime hitboxes, per-instance target deduplication, hit resolution, and hitstop requests.
-5. Migrate old `.tres` action resources and remove old modules only after compatibility is verified.
+Current migration branch: `feature/hitinstance-runtime-migration` (pending PR review and Godot validation).
 
-## 2. Latest confirmed changes
+## 2. Latest implementation on the migration branch
 
-- User has replaced/added the two data scripts:
-  - `03_scripts/01_combat/data/hitbox_data.gd`
-  - `03_scripts/01_combat/data/hit_instance_data.gd`
-- User has added this export to `CombatActionData`:
-  ```gdscript
-  @export var hit_instances: Array[HitInstanceData] = []
-  ```
-- These edits have not yet been confirmed as successfully imported/parsed by the Godot editor. Verify before proceeding.
-- No existing `HitboxModule` or `HitstopModule` has been removed.
-- No Action execution, Player1 scene tree, or MovementModule changes have been made as part of this migration yet.
+The following changes have been prepared on the migration branch but have **not yet been tested in Godot**:
+
+- `HitModule` is automatically created only when `CombatActionData.hit_module_enabled` is enabled; HitInstance presence alone no longer controls execution.
+- The HitInstance array is hidden in the Inspector while disabled, but its data is preserved. Enabling HitModule creates one default HitInstance only when the array is empty.
+- Collision Mask is configured once on `CombatActionData` and shared by every HitInstance in that Action. It appears only when the HitInstance array is non-empty; Player Actions target Enemy Layer 3 (Mask 4), Enemy Action 01 targets Player Layer 2 (Mask 2).
+- Player1 and EnemyBase now have explicit collision layers/masks: Player Layer 2, Enemy Layer 3, both bodies mask World Layer 1.
+- Hit Editor floating panel resizing is restricted to its right edge; tree row selection remains handled by the Tree control.
+- Hitbox list rows and canvas Hitboxes both expose the same right-click layer menu (raise, lower, top, bottom); the underlying HitInstance Hitbox array order drives both draw order and click priority.
+- The Hit Editor tree shows the ActionData title and HitInstance titles at the same indentation level; selecting the ActionData title inspects the complete `CombatActionData` resource.
+- Hitboxes within each HitInstance receive related but slightly varied editor colors.
+- HitInstance and individual Hitbox rows have independent eye-button visibility toggles; hidden Hitboxes are omitted from drawing and picking only, with no runtime collision setting changed.
+- These new Hit Editor controls are committed but have not yet been run in Godot 4.7.2; local validation is still required.
+- One runtime `Area2D` is created per HitInstance, with one `CollisionShape2D` per Hitbox.
+- Hitboxes in one HitInstance share one target-hit record; different HitInstances have independent records.
+- HitInstance windows are evaluated against the current update interval to avoid waiting an additional Executor update after crossing a configured time boundary.
+- Hitbox X offsets and rotation are mirrored from the Action's captured facing direction.
+- Collision masks belong to `CombatActionData` and are shared by all of its runtime HitInstance Areas; runtime Areas no longer depend on a scene-level `AttackArea`.
+- `CombatDebugOverlay` reads runtime HitInstance data, draws actual runtime shapes, shows per-instance hit counts, and marks HitInstance windows under Active.
+- Old `AttackArea` nodes were removed from Player1 and EnemyBase scenes.
+- Existing action resources were cleaned of obsolete manual HitModule entries.
+- The old HitstopModule settings were migrated to HitInstanceData where non-default values existed. The deprecated `HitstopModule` script was removed after checking its script references and all action resource references.
+
+Important preserved behavior:
+- `HitInstanceData` still owns Hitstop settings.
+- Adjusting attacker freeze duration continues to add one frame to target freeze duration.
+- `CombatTimeManager` remains the actual time-freeze executor.
+- `HitManager` remains responsible for target interruption and super-armor comparison.
+- MovementModule, Dash, and Stabilization were not changed by this migration.
 
 ## 3. Existing systems and verified progress
+
 
 ### Unified Action request path
 All formal combat actions must enter through:
@@ -67,7 +80,7 @@ This applies to Player attacks, skills, Enemy attacks, and Dash. Do not bypass t
 - Do not add a global frozen check to `start_action()`.
 
 ### Action-time ordinary movement restriction
-User accepted the current implementation temporarily:
+User reports this system is now essentially complete. It is not part of the current HitInstance migration task and should not be treated as an active to-do.
 - Ordinary directional movement does not run during an Action.
 - Direction input is still sampled for subsequent Actions/Jump.
 - Existing horizontal velocity is allowed to decay naturally.
@@ -143,12 +156,14 @@ The exact fields and shape construction must be checked against the actual `hitb
 
 ## 6. Immediate next steps
 
-1. Ask the user to confirm whether Godot imports the two new Resources and the `CombatActionData` export without parse errors.
-2. Inspect the current versions of `hitbox_data.gd`, `hit_instance_data.gd`, and `combat_action_data.gd` if any mismatch or error appears.
-3. Review the current `CombatActionExecutor` lifecycle before wiring HitModule callbacks.
-4. Implement automatic HitModule availability for Actions with configured HitInstances.
-5. Only then implement runtime Area2D creation and HitInstance timing.
-6. Migrate old `.tres` resources and compare behavior before deleting legacy modules.
+1. Review the migration PR and synchronize the local project when ready to test.
+2. Open the project in Godot 4.7.2 and confirm there are no script parse errors, missing resources, or invalid `.tres` references.
+3. Verify left/right Hitbox mirroring for rectangle, circle, and capsule shapes.
+4. Verify HitInstance start/end timing, including boundaries that fall between frame timestamps.
+5. Verify per-instance target deduplication, later-instance re-hits, Hitstop, and Action cancellation cleanup.
+6. Verify the DebugOverlay displays actual runtime Hitboxes and HitInstance timing for both Player and Enemy.
+7. In Hit Editor, test Hitbox layer ordering / topmost selection, Undo/Redo, per-Hitbox color variation, and independent HitInstance / Hitbox visibility toggles.
+8. Only after these checks pass, mark the migration and editor updates complete and continue to the next combat-system feature.
 
 ## 7. Collaboration constraints
 

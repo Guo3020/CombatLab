@@ -15,7 +15,7 @@ enum ShapeType {
 
 @export_group("形状")
 
-@export_enum("Rectangle", "Circle", "Capsule")
+@export_enum("矩形", "圆形", "胶囊形")
 var shape_type: int = ShapeType.RECTANGLE
 
 
