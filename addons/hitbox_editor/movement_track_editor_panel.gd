@@ -273,10 +273,16 @@ func set_movement(value: MovementModule) -> void:
 func _refresh() -> void:
 	if movement == null:
 		return
-	if movement.movement_track_x != null and not movement.movement_track_x.changed.is_connected(_refresh):
-		movement.movement_track_x.changed.connect(_refresh)
-	if movement.movement_track_y != null and not movement.movement_track_y.changed.is_connected(_refresh):
-		movement.movement_track_y.changed.connect(_refresh)
+	if movement.movement_track_x != null:
+		movement.movement_track_x.resource_name = "MovementTrack X Curve"
+		movement.movement_track_x.bake_resolution = 8
+		if not movement.movement_track_x.changed.is_connected(_refresh):
+			movement.movement_track_x.changed.connect(_refresh)
+	if movement.movement_track_y != null:
+		movement.movement_track_y.resource_name = "MovementTrack Y Curve"
+		movement.movement_track_y.bake_resolution = 8
+		if not movement.movement_track_y.changed.is_connected(_refresh):
+			movement.movement_track_y.changed.connect(_refresh)
 	duration_spin.set_value_no_signal(movement.movement_track_duration)
 	for axis_button in duration_axis_buttons:
 		axis_button.text = "%.2fs" % movement.movement_track_duration
