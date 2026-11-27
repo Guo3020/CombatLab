@@ -68,8 +68,8 @@ class CurveGraph extends Control:
 		for i in range(65):
 			var progress := float(i) / 64.0
 			var value := curve.sample_baked(progress)
-			var x := left + progress * graph_size.x
-			var y := zero_y - clampf(value / maxf(value_range, 0.01), -1.0, 1.0) * graph_size.y * 0.5
+			var x := left + (progress * view_zoom + view_pan.x) * graph_size.x
+			var y := zero_y - clampf(value / maxf(value_range, 0.01), -1.0, 1.0) * graph_size.y * 0.5 * view_zoom + view_pan.y
 			points.append(Vector2(x, y))
 		if points.size() > 1:
 			draw_polyline(points, Color(0.3, 0.92, 0.74, 0.95), 2.0, true)
@@ -304,8 +304,3 @@ func _on_header_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	if dragging:
 		position = panel_origin + get_global_mouse_position() - drag_origin
-
-
-func _on_number_confirmed() -> void:
-	if number_callback.is_valid():
-		number_callback.call(number_spin.value)
