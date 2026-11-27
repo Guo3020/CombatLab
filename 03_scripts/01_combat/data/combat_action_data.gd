@@ -117,6 +117,7 @@ var input_buffer_enabled: bool = true
 		emit_changed()
 
 @export_group("命中实例")
+@export_flags_2d_physics var collision_mask: int = 1 << 2
 @export var hit_instances: Array[HitInstanceData] = []
 
 @export_group("其他功能模块")
@@ -131,4 +132,6 @@ func ensure_hit_instance() -> void:
 
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "hit_instances" and not hit_module_enabled:
+		property.usage = PROPERTY_USAGE_STORAGE
+	elif property.name == "collision_mask" and hit_instances.is_empty():
 		property.usage = PROPERTY_USAGE_STORAGE
