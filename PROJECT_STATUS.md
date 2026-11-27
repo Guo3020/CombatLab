@@ -155,7 +155,7 @@ The exact fields and shape construction must be checked against the actual `hitb
 - Duration is runtime seconds; Curve2D trajectories remain a possible later extension.
 - Dash remains on its existing implementation.
 - BLOCK keeps the normal Collision Mask. IGNORE_WORLD temporarily removes only Layer 2 and preserves Layer 1 plus all other mask bits; the original mask is restored when the Movement request ends.
-- Collision layers are now Layer 1 Map Boundary, Layer 2 World Geometry, Layer 3 Player, and Layer 4 Enemy. Ground/platforms use Layer 2; the arena bottom fall guard uses Layer 1. Map colliders may belong to both layers.
+- Collision layers are now Layer 1 Map Boundary, Layer 2 World Geometry, Layer 3 Player, and Layer 4 Enemy. Ground/platforms use Layer 2; the arena bottom and side boundary guards use Layer 1. Map colliders may belong to both layers.
 - Project physics tick rate is set to 60 Hz. Runtime Action timing remains seconds; Hit Editor's timeline ruler and playhead use 60 Hz frames via CombatTimebase.
 - Hit Editor now displays the full Action phase timeline, HitInstance windows, MovementTrack lane, and a frame-snapped playhead that previews Actor and Hitbox movement.
 
