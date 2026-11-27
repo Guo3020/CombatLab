@@ -3,7 +3,7 @@ extends Resource
 class_name HitInstanceData
 
 
-const FRAME_DURATION: float = 1.0 / 60.0
+const FRAME_DURATION: float = CombatTimebase.FRAME_DURATION
 
 
 func _init() -> void:
