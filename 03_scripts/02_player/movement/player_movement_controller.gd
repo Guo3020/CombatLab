@@ -1081,7 +1081,7 @@ func _update_movement_track(
 	var result := {
 		"active": true,
 		"velocity": Vector2.ZERO,
-		"suppress_gravity": false
+		"suppress_gravity": true
 	}
 
 	if actor_delta <= 0.0:
