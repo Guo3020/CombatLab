@@ -248,9 +248,19 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 
 
 func set_movement(value: MovementModule) -> void:
-	movement = value
-	if not is_node_ready():
+	if movement == value:
 		return
+	if movement != null and movement.changed.is_connected(_refresh):
+		movement.changed.disconnect(_refresh)
+	movement = value
+	if not is_node_ready() or movement == null:
+		return
+	if not movement.changed.is_connected(_refresh):
+		movement.changed.connect(_refresh)
+	if movement.movement_track_x != null and not movement.movement_track_x.changed.is_connected(_refresh):
+		movement.movement_track_x.changed.connect(_refresh)
+	if movement.movement_track_y != null and not movement.movement_track_y.changed.is_connected(_refresh):
+		movement.movement_track_y.changed.connect(_refresh)
 	_refresh()
 
 
