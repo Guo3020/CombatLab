@@ -114,12 +114,6 @@ func _ready() -> void:
 
 	else:
 		push_warning("CombatDebugOverlay：没有找到 EnemyBase")
-	print("Overlay visible: ", is_visible_in_tree())
-	print("Overlay modulate: ", modulate)
-	print("Overlay self_modulate: ", self_modulate)
-	print("CanvasLayer: ", get_parent().name)
-	print("CanvasLayer visible: ", get_parent().visible)
-	print("CanvasLayer layer: ", get_parent().layer)
 
 
 
@@ -1162,7 +1156,7 @@ func _on_target_interrupted(
 	target: Node,
 	_attacker: Node,
 	action_progress: float,
-	phase_name: String
+	_phase_name: String
 ) -> void:
 	if target != enemy:
 		return
