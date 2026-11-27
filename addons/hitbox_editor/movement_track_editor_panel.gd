@@ -144,9 +144,9 @@ class CurveGraph extends Control:
 					accept_event()
 					return
 				selected_point = _find_nearest_point(button.position)
+				queue_redraw()
 				if selected_point >= 0:
 					dragging_point = selected_point
-					queue_redraw()
 					accept_event()
 			elif button.button_index == MOUSE_BUTTON_LEFT and not button.pressed:
 				dragging_point = -1
