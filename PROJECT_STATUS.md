@@ -6,7 +6,7 @@
 
 ## 1. Current focus
 
-Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a usability pass (Hitbox stacking order, per-Hitbox colors, visibility toggles, ActionData hierarchy, and canvas context menu) alongside HitInstance runtime validation.
+Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a usability pass (Hitbox stacking order, per-Hitbox colors, visibility toggles, ActionData hierarchy, and canvas context menu) alongside HitInstance runtime validation, including Enemy-to-Player hit diagnosis and target-side damage numbers.
 
 Current migration branch: `feature/hitinstance-runtime-migration` (pending PR review and Godot validation).
 
@@ -23,6 +23,8 @@ The following changes have been prepared on the migration branch but have **not 
 - The Hit Editor tree shows the ActionData title and HitInstance titles at the same indentation level; selecting the ActionData title inspects the complete `CombatActionData` resource.
 - Hitboxes within each HitInstance receive related but slightly varied editor colors.
 - HitInstance and individual Hitbox rows have independent eye-button visibility toggles; hidden Hitboxes are omitted from drawing and picking only, with no runtime collision setting changed.
+- Damage debug numbers are now emitted by the hit target rather than the attacker, so incoming Enemy damage can appear over Player. Enemy targets also expose the same debug signal.
+- HitModule logs Body Entered contact details (attacker, target, phase, runtime enabled state, Area2D monitoring, collision mask, and target collision layer) to help isolate missing Enemy-to-Player hits.
 - These new Hit Editor controls are committed but have not yet been run in Godot 4.7.2; local validation is still required.
 - One runtime `Area2D` is created per HitInstance, with one `CollisionShape2D` per Hitbox.
 - Hitboxes in one HitInstance share one target-hit record; different HitInstances have independent records.
