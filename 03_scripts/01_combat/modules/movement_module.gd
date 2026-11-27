@@ -7,7 +7,14 @@ class_name MovementModule
 enum MovementMode {
 	NONE,
 	DASH,
-	VELOCITY_OVERRIDE
+	VELOCITY_OVERRIDE,
+	MOVEMENT_TRACK
+}
+
+
+enum MovementCollisionStrategy {
+	BLOCK,
+	IGNORE_WORLD
 }
 
 enum DirectionSource {
@@ -56,6 +63,7 @@ func _validate_property(property: Dictionary) -> void:
 
 	var is_dash_mode: bool = movement_mode == MovementMode.DASH
 	var is_override_mode: bool = movement_mode == MovementMode.VELOCITY_OVERRIDE
+	var is_movement_track_mode: bool = movement_mode == MovementMode.MOVEMENT_TRACK
 
 	var dash_properties: Array[StringName] = [
 		&"dash_speed",
@@ -78,10 +86,20 @@ func _validate_property(property: Dictionary) -> void:
 		&"override_suppress_gravity"
 	]
 
+	var movement_track_properties: Array[StringName] = [
+		&"movement_track_duration",
+		&"movement_track_x",
+		&"movement_track_y",
+		&"movement_track_collision_strategy"
+	]
+
 	if property_name in dash_properties and not is_dash_mode:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
 
 	if property_name in override_properties and not is_override_mode:
+		property.usage = PROPERTY_USAGE_NO_EDITOR
+
+	if property_name in movement_track_properties and not is_movement_track_mode:
 		property.usage = PROPERTY_USAGE_NO_EDITOR
 
 	if property_name in [&"end_velocity_mode", &"end_speed"]:
@@ -294,6 +312,19 @@ func on_module_start(context: RefCounted) -> void:
 			"dash_time_freeze_duration": dash_time_freeze_duration
 		})
 
+	elif movement_mode == MovementMode.MOVEMENT_TRACK:
+		movement_request.merge({
+			"movement_track_duration": movement_track_duration,
+			"movement_track_x": movement_track_x,
+			"movement_track_y": movement_track_y,
+			"movement_track_collision_strategy": movement_track_collision_strategy
+		})
+
+		movement_debug.merge({
+			"movement_track_duration": movement_track_duration,
+			"movement_track_collision_strategy": "IGNORE_WORLD" if movement_track_collision_strategy == MovementCollisionStrategy.IGNORE_WORLD else "BLOCK"
+		})
+
 	elif movement_mode == MovementMode.VELOCITY_OVERRIDE:
 		var direction := _get_direction(
 			action_context,
@@ -460,6 +491,9 @@ func _get_movement_mode_name() -> String:
 
 		MovementMode.VELOCITY_OVERRIDE:
 			return "VELOCITY_OVERRIDE"
+
+		MovementMode.MOVEMENT_TRACK:
+			return "MOVEMENT_TRACK"
 
 		_:
 			return "NONE"
