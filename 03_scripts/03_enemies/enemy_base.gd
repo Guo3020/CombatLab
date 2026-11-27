@@ -115,9 +115,7 @@ func take_damage(damage: float) -> void:
 		return
 
 	current_health = maxf(current_health - damage, 0.0)
-
-	print(name, "受到伤害：", damage)
-	print("剩余生命值：", current_health)
+	debug_damage_number.emit(global_position, damage)
 
 	if current_health <= 0.0:
 		die()
@@ -142,7 +140,6 @@ func die() -> void:
 	if combat_action_executor.is_action_running():
 		combat_action_executor.cancel_action()
 
-	print(name, "被击败！")
 
 
 # ==============================
