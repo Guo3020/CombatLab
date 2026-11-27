@@ -688,6 +688,8 @@ func _draw_movement_info() -> void:
 	var movement_mode: String = str(
 		movement_debug.get("movement_mode", "UNKNOWN")
 	)
+	if movement_track_active:
+		movement_mode = "MOVEMENT_TRACK"
 
 	var stabilization: bool = movement_debug.get(
 		"stabilization_enabled",
