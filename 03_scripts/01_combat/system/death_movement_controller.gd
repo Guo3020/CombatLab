@@ -90,12 +90,13 @@ func update_after_move() -> void:
 	var just_landed: bool = on_floor_now and not was_on_floor
 
 	if just_landed:
+		var bounce_speed: float = impact_velocity_y * landing_bounce_ratio
 		if (
 			bounce_on_landing
 			and bounce_count == 0
-			and impact_velocity_y > 0.0
+			and bounce_speed > 1.0
 		):
-			actor.velocity.y = -impact_velocity_y * landing_bounce_ratio
+			actor.velocity.y = -bounce_speed
 			bounce_count += 1
 		else:
 			is_settled = true
