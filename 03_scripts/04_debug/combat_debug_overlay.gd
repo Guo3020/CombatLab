@@ -751,7 +751,7 @@ func _draw_player_death_cleanup_info() -> void:
 		"collision_mask_layers",
 		[]
 	)
-	var layer_labels: Array[String] = []
+	var layer_labels := PackedStringArray()
 	for layer in collision_mask_layers:
 		layer_labels.append(str(layer))
 	var mask_layers_text: String = (
