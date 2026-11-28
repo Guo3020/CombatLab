@@ -9,6 +9,12 @@ signal debug_damage_number(world_position: Vector2, amount: float)
 @export_group("生命值")
 @export var max_health: float = 100.0
 
+@export_group("死亡移动")
+@export var death_gravity: float = 1000.0
+@export var death_horizontal_deceleration: float = 900.0
+@export_range(0.0, 1.0, 0.05)
+var death_landing_bounce_ratio: float = 0.35
+
 @export_group("受击设置")
 @export_range(0, 10, 1)
 var default_super_armor_level: int = 0
@@ -31,6 +37,7 @@ func get_effective_super_armor_level() -> int:
 
 var current_health: float = 0.0
 var is_dead: bool = false
+var death_movement_controller: DeathMovementController
 
 @onready var movement_controller: EnemyMovementController = $MovementController
 
@@ -51,6 +58,7 @@ var facing_direction: float = 1.0
 
 func _ready() -> void:
 	current_health = max_health
+	death_movement_controller = DeathMovementController.new()
 
 	if not HitManager.target_interrupted.is_connected(
 		_on_target_interrupted
@@ -113,7 +121,10 @@ func _on_executor_action_started(
 # 生命值与受伤
 # ==============================
 
-func take_damage(damage: float) -> void:
+func take_damage(
+	damage: float,
+	attack_direction: Vector2 = Vector2.ZERO
+) -> void:
 	if is_dead:
 		return
 
@@ -124,27 +135,38 @@ func take_damage(damage: float) -> void:
 	debug_damage_number.emit(global_position, damage)
 
 	if current_health <= 0.0:
-		die()
+		die(attack_direction)
 
 
 # ==============================
 # 死亡
 # ==============================
 
-func die() -> void:
+func die(attack_direction: Vector2 = Vector2.ZERO) -> void:
 	if is_dead:
 		return
 
+	var death_velocity: Vector2 = velocity
 	is_dead = true
 
-	velocity = Vector2.ZERO
 	movement_controller.stop_moving()
 
 	if combat_combo_executor.is_combo_running:
-		combat_combo_executor.cancel_combo()
+		combat_combo_executor.clear_for_death()
 
 	if combat_action_executor.is_action_running():
 		combat_action_executor.cancel_action()
+
+	velocity = death_velocity
+	set_collision_mask_value(1, true)
+	set_collision_mask_value(2, true)
+	death_movement_controller.begin_non_knockback(
+		self,
+		attack_direction,
+		death_gravity,
+		death_horizontal_deceleration,
+		death_landing_bounce_ratio
+	)
 
 
 
@@ -153,9 +175,6 @@ func die() -> void:
 # ==============================
 
 func _physics_process(delta: float) -> void:
-	if is_dead:
-		return
-
 	var actor_delta: float = CombatTimeManager.get_actor_delta(
 		self,
 		delta
@@ -164,8 +183,18 @@ func _physics_process(delta: float) -> void:
 	if actor_delta <= 0.0:
 		return
 
+	if is_dead:
+		death_movement_controller.update_before_move(actor_delta)
+		_move_and_slide_with_time_scale(actor_delta, delta)
+		death_movement_controller.update_after_move()
+		return
+
 	movement_controller.update_movement()
 	_move_and_slide_with_time_scale(actor_delta, delta)
+
+
+func get_death_movement_debug_data() -> Dictionary:
+	return death_movement_controller.get_debug_data()
 
 
 # ==============================
