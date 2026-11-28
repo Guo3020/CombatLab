@@ -287,7 +287,7 @@ func _initialize_flat_track_curve(curve: Curve) -> void:
 
 	curve.min_value = -1000.0
 	curve.max_value = 1000.0
-	curve.bake_resolution = 8
+	curve.bake_resolution = 1000.0
 
 
 # ==================================================
