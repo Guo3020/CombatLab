@@ -222,3 +222,19 @@ Current narrow UI investigation:
   `y_graph = CurveGraph.new()`
   `content.add_child(_make_graph_section("Track_Y", y_graph, false))`
 - The next layout investigation should inspect the full parent/child sizing chain around ScrollContainer, content VBoxContainer, _make_graph_section(), and the panel's resize logic. Avoid broad searches for SIZE_EXPAND_FILL; inspect the specific hierarchy.
+
+
+## 11. Death movement update (2026-11-28)
+
+Implemented on the GPT branch; Godot runtime validation is pending.
+
+- Added shared `DeathMovementController` for Player1 and EnemyBase.
+- Ground Death and Air Death are unified as `Non-Knockback Death`; no separate ground/air mode is used.
+- Lethal HitModule damage now passes the incoming horizontal attack direction to the target.
+- With an incoming attack direction, Non-Knockback Death sets X velocity to exactly 500 toward the attack direction. With no usable source direction, it preserves the death-time X velocity.
+- Horizontal velocity gradually decelerates while gravity remains active.
+- Airborne deaths bounce once on first landing, using pre-impact vertical speed multiplied by the configured bounce ratio. Grounded deaths do not bounce.
+- Death collision masks include Layers 1 and 2.
+- Player death movement state is shown in CombatDebugOverlay; EnemyBase exposes the same controller debug data.
+- Knockback Death is not implemented. Add it after KnockbackModule exists, including whole-vector minimum-speed protection and one landing bounce.
+- No death animation has been added yet.
