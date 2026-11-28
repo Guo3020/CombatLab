@@ -75,7 +75,7 @@ func request_skill() -> bool:
 	if special_skill != null and special_skill.get_action_count() > 0:
 		var first_action := special_skill.get_action(0)
 
-		if has_enough_energy(first_action.energy_cost):
+		if can_pay_action_cost(first_action):
 			selected_skill = special_skill
 
 	var request := CombatActionRequest.new()
