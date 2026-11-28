@@ -44,7 +44,7 @@ func _handles(object: Object) -> bool:
 	return object is CombatActionData
 
 func _edit(object: Object) -> void:
-	# Inspector selection may temporarily move to another object when the
-	# user clicks the editor workspace. Keep the last Action pinned.
+	# Pin the selected ActionData and open its editor workspace automatically.
 	if object is CombatActionData and is_instance_valid(main_panel):
 		main_panel.set_action_data(object)
+		EditorInterface.set_main_screen_editor(_get_plugin_name())
