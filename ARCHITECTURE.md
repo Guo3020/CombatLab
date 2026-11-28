@@ -310,3 +310,20 @@ The Hit Editor timeline now spans Startup → Active → Recovery, displays HitI
 - Death collision masks explicitly include Layers 1 and 2.
 - The controller exposes runtime debug data; Player death movement is displayed in CombatDebugOverlay.
 - Knockback vector handling, whole-vector minimum-speed protection, and Knockback Death remain deferred until KnockbackModule is implemented.
+
+
+## 15. SkillSystem and resource costs (2026-11-28)
+
+- `SkillSystem` replaces the former separate `CombatEnergy` and `SkillSelector` nodes.
+- SkillSystem owns Energy (0–100), Decibel (0–3000), normal / enhanced-special selection, and Ultimate request submission.
+- Existing skill input behavior is preserved: the enhanced special skill is selected when its first Action's resource cost can be paid; otherwise the normal skill is selected.
+- Energy remains a per-Action cost. Each Action segment is checked and paid when its Action starts, not as one up-front combo payment.
+- `CombatActionData.energy_cost` remains an Inspector-visible Energy cost.
+- `CombatActionData.decibel_cost` is an Inspector-hidden stored value. Its default is 1000, but it is applied only when `action_type == &"ultimate"`; all other Action types report zero Decibel cost.
+- `CombatActionExecutor` delegates Action resource payment to `SkillSystem.consume_action_cost()`. The method checks all required resources before deducting any, preventing partial payment.
+- `CombatComboExecutor` consults SkillSystem when deciding whether a resource-costing request can be buffered; it does not deduct resources while buffering.
+- Ultimate is represented by a `CombatActionData` and submitted as a normal `START_ACTION` request through `CombatComboExecutor.submit_request()`.
+- SkillSystem exposes an `ultimate_action_data` resource slot. The actual Ultimate Action resource and its attack behavior are not authored yet.
+- `ultimate` is registered as an unbound Input Map action. The user assigns its physical key in Project Settings; runtime code does not create or prompt for input actions.
+- SkillSystem exposes `add_decibel()` and the debug overlay displays the current Decibel value. The gameplay rules for gaining Decibel remain undecided.
+- The SkillSystem migration is implemented on the GPT branch but awaits local Godot validation.
