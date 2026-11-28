@@ -3,7 +3,7 @@ extends Node
 class_name CombatActionExecutor
 
 
-const DEBUG_ACTION_OVERRIDE: bool = true
+const DEBUG_ACTION_OVERRIDE: bool = false
 
 
 # ==================================================

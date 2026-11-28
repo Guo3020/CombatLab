@@ -671,7 +671,7 @@ func _draw_player_death_cleanup_info() -> void:
 	)
 
 	var all_clear: bool = bool(debug_data.get("all_clear", false))
-	var info_position := Vector2(20.0, size.y - 180.0)
+	var info_position := Vector2(20.0, size.y - 230.0)
 	var line_height: float = 18.0
 	var font := ThemeDB.fallback_font
 
@@ -729,10 +729,6 @@ func _draw_player_death_cleanup_info() -> void:
 			"label": "Debug timeline",
 			"passed": bool(debug_data.get("debug_timeline_clear", false))
 		},
-		{
-			"label": "Velocity = ZERO",
-			"passed": bool(debug_data.get("velocity_zero", false))
-		}
 	]
 
 	for index in range(checks.size()):
@@ -750,6 +746,46 @@ func _draw_player_death_cleanup_info() -> void:
 			13,
 			Color(0.35, 1.0, 0.5) if passed else Color(1.0, 0.3, 0.25)
 		)
+
+	var collision_mask_layers: Array = debug_data.get(
+		"collision_mask_layers",
+		[]
+	)
+	var layer_labels: Array[String] = []
+	for layer in collision_mask_layers:
+		layer_labels.append(str(layer))
+	var mask_layers_text: String = (
+		", ".join(layer_labels)
+		if not layer_labels.is_empty()
+		else "None"
+	)
+
+	draw_string(
+		font,
+		info_position + Vector2(0.0, line_height * 9.0),
+		"Collision Mask Layers: " + mask_layers_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		13,
+		Color(0.5, 0.85, 1.0)
+	)
+
+	var death_velocity: Vector2 = debug_data.get(
+		"death_velocity",
+		Vector2.ZERO
+	)
+	draw_string(
+		font,
+		info_position + Vector2(0.0, line_height * 10.0),
+		"Death Velocity: (%.1f, %.1f)" % [
+			death_velocity.x,
+			death_velocity.y
+		],
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		13,
+		Color(0.8, 0.8, 0.8)
+	)
 
 
 # ==================================================

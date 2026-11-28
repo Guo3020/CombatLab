@@ -364,18 +364,25 @@ func _reset_special_dash_input_state() -> void:
 # ==================================================
 
 func _physics_process(delta: float) -> void:
-	if is_dead:
-		velocity = Vector2.ZERO
-		return
-
 	var actor_delta: float = CombatTimeManager.get_actor_delta(
 		self,
 		delta
 	)
 
-	# TimeFreeze 只暂停角色自身执行层。
-	# 输入采集仍然在 _process() 中继续。
+	# TimeFreeze 暂停角色自身的物理执行层。
 	if actor_delta <= 0.0:
+		return
+
+	# 死亡后不再执行输入、Action 或普通移动逻辑，
+	# 但保留独立的重力与碰撞更新。
+	if is_dead:
+		velocity = movement_controller.apply_gravity(
+			actor_delta,
+			velocity,
+			is_on_floor(),
+			false
+		)
+		_move_and_slide_with_time_scale(actor_delta, delta)
 		return
 
 	# --------------------------------------------------
@@ -634,10 +641,13 @@ func die() -> void:
 	# 死亡状态统一以 0 生命值表示，包括 Debug 直接死亡。
 	current_health = 0.0
 
+	# 保存死亡瞬间的速度。清理 Action 后恢复它，
+	# 让死亡状态仍能继续受到重力和碰撞影响。
+	var death_velocity: Vector2 = velocity
+
 	# 先锁定死亡状态，防止清理期间产生新的战斗输入。
 	is_dead = true
 
-	velocity = Vector2.ZERO
 	move_input_direction = 0.0
 	move_input_vector = Vector2.ZERO
 
@@ -669,8 +679,8 @@ func die() -> void:
 	if movement_controller != null:
 		movement_controller.clear_for_death()
 
-	# 结束回调可能处理 End Velocity，因此最后再次锁定速度。
-	velocity = Vector2.ZERO
+	# Action / Movement 清理回调可能改写速度，恢复死亡瞬间的速度。
+	velocity = death_velocity
 
 
 # ==================================================
@@ -710,6 +720,11 @@ func get_death_cleanup_debug_data() -> Dictionary:
 		movement_controller == null
 		or not movement_controller.movement_track_collision_mask_modified
 	)
+	var collision_mask_layers: Array[int] = []
+	for layer in range(1, 33):
+		if get_collision_mask_value(layer):
+			collision_mask_layers.append(layer)
+
 	var stabilization_active: bool = (
 		movement_controller != null
 		and (
@@ -747,8 +762,6 @@ func get_death_cleanup_debug_data() -> Dictionary:
 		and debug_action_name == "待机"
 	)
 
-	var velocity_zero: bool = velocity.is_zero_approx()
-
 	var all_clear: bool = (
 		is_dead
 		and not action_running
@@ -762,7 +775,6 @@ func get_death_cleanup_debug_data() -> Dictionary:
 		and input_buffers_clear
 		and duck_and_landing_clear
 		and debug_timeline_clear
-		and velocity_zero
 	)
 
 	return {
@@ -778,7 +790,8 @@ func get_death_cleanup_debug_data() -> Dictionary:
 		"input_buffers_clear": input_buffers_clear,
 		"duck_and_landing_clear": duck_and_landing_clear,
 		"debug_timeline_clear": debug_timeline_clear,
-		"velocity_zero": velocity_zero
+		"collision_mask_layers": collision_mask_layers,
+		"death_velocity": velocity
 	}
 
 
