@@ -297,3 +297,16 @@ The Hit Editor timeline now spans Startup → Active → Recovery, displays HitI
 - GDScript indentation: tabs.
 - Avoid unused fields, speculative APIs, and redundant modules.
 - Prefer clear ownership and small steps over abstraction for its own sake.
+
+
+## 14. Death movement architecture (2026-11-28)
+
+- Player1 and EnemyBase use the shared `DeathMovementController`; death cleanup remains owned by each character.
+- Death movement currently implements `NON_KNOCKBACK`. `KNOCKBACK` is reserved as a future mode and is not active until `KnockbackModule` exists.
+- A lethal hit passes its horizontal attack direction from `HitModule` to the target's `take_damage()` method. The direction is derived from attacker-to-target world X positions.
+- Non-Knockback Death sets horizontal speed to exactly 500 in the incoming attack's X direction. If no usable attack direction is supplied (including direct Debug death), the death-time X velocity is preserved.
+- Horizontal velocity gradually decelerates; gravity remains active.
+- A character that dies while airborne may bounce once on its first landing. Bounce speed is based on the vertical impact speed multiplied by the configured landing bounce ratio. A character that dies while grounded does not bounce.
+- Death collision masks explicitly include Layers 1 and 2.
+- The controller exposes runtime debug data; Player death movement is displayed in CombatDebugOverlay.
+- Knockback vector handling, whole-vector minimum-speed protection, and Knockback Death remain deferred until KnockbackModule is implemented.
