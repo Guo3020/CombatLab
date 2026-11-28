@@ -47,7 +47,7 @@ The shared Non-Knockback Death implementation has been tested locally by the use
 - Death collision retains Layers 1 and 2.
 - Death movement debug data is available for Player and Enemy.
 
-<badge>Note</badge> Knockback Death is not implemented. It is deferred until `KnockbackModule` exists.
+**Note:** Knockback Death is not implemented. It is deferred until `KnockbackModule` exists.
 
 ### Combat architecture and editor
 
