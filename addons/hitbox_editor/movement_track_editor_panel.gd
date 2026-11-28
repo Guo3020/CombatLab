@@ -306,6 +306,7 @@ func _ready() -> void:
 	number_dialog.confirmed.connect(_on_number_confirmed)
 
 	_create_resize_grips()
+	_connect_movement_signals()
 	_refresh()
 
 
