@@ -1,240 +1,123 @@
 # CombatLab — Project Status
 
-> Last updated: 2026-11-27 (debug cleanup)  
+> Last updated: 2026-11-28  
 > Project: Godot 2D side-view action-combat prototype  
-> Status source: current GitHub `main` plus user-confirmed test results. The HitInstance migration branch described below is not merged or locally tested yet.
+> Status source: GPT branch implementation plus explicitly user-confirmed local test results. Do not treat unverified code as runtime-tested.
 
-## 1. Current focus
+## 1. Current development direction
 
-Complete and validate the HitInstance runtime migration. The Hit Editor is receiving a usability pass (Hitbox stacking order, per-Hitbox colors, visibility toggles, ActionData hierarchy, and canvas context menu) alongside HitInstance runtime validation, including Enemy-to-Player hit diagnosis and target-side damage numbers.
+The next major task is to build a unified **SkillSystem**. The existing `CombatEnergy` and `SkillSelector` responsibilities are currently separate; the agreed direction is to bring energy/resource management and skill selection under one SkillSystem for easier management.
 
-Current migration branch: `feature/hitinstance-runtime-migration` (pending PR review and Godot validation).
+After the SkillSystem is established, the Decibel / Ultimate system should reuse it rather than introducing a parallel skill execution path.
 
-## 2. Latest implementation on the migration branch
+All formal Actions must continue to use the existing request route:
 
-The following changes have been prepared on the migration branch but have **not yet been tested in Godot**:
+`CombatActionRequest` → `CombatComboExecutor.submit_request()` → `CombatActionExecutor`
 
-- `HitModule` is automatically created only when `CombatActionData.hit_module_enabled` is enabled; HitInstance presence alone no longer controls execution.
-- The HitInstance array is hidden in the Inspector while disabled, but its data is preserved. Enabling HitModule creates one default HitInstance only when the array is empty.
-- Collision Mask is configured once on `CombatActionData` and shared by every HitInstance in that Action. It appears only when the HitInstance array is non-empty; Player Actions target Enemy Layer 3 (Mask 4), Enemy Action 01 targets Player Layer 2 (Mask 2).
-- Player1 and EnemyBase now have explicit collision layers/masks: Player Layer 2, Enemy Layer 3, both bodies mask World Layer 1.
-- Hit Editor floating panel resizing is restricted to its right edge; tree row selection remains handled by the Tree control.
-- Hitbox list rows and canvas Hitboxes both expose the same right-click layer menu (raise, lower, top, bottom); the underlying HitInstance Hitbox array order drives both draw order and click priority.
-- The Hit Editor tree shows the ActionData title and HitInstance titles at the same indentation level; selecting the ActionData title inspects the complete `CombatActionData` resource.
-- Hitboxes within each HitInstance receive related but slightly varied editor colors.
-- HitInstance and individual Hitbox rows have independent eye-button visibility toggles; hidden Hitboxes are omitted from drawing and picking only, with no runtime collision setting changed.
-- Damage debug numbers are now emitted by the hit target rather than the attacker, so incoming Enemy damage can appear over Player. Enemy targets also expose the same debug signal.
-- Temporary HitModule contact/diagnostic prints and Overlay visibility prints have been removed after Enemy-to-Player damage feedback was restored. Damage debug numbers are emitted directly by `Player1.take_damage()` / `EnemyBase.take_damage()`.
-- These new Hit Editor controls are committed but have not yet been run in Godot 4.7.2; local validation is still required.
-- One runtime `Area2D` is created per HitInstance, with one `CollisionShape2D` per Hitbox.
-- Hitboxes in one HitInstance share one target-hit record; different HitInstances have independent records.
-- HitInstance windows are evaluated against the current update interval to avoid waiting an additional Executor update after crossing a configured time boundary.
-- Hitbox X offsets and rotation are mirrored from the Action's captured facing direction.
-- Collision masks belong to `CombatActionData` and are shared by all of its runtime HitInstance Areas; runtime Areas no longer depend on a scene-level `AttackArea`.
-- `CombatDebugOverlay` reads runtime HitInstance data, draws actual runtime shapes, shows per-instance hit counts, and marks HitInstance windows under Active.
-- Old `AttackArea` nodes were removed from Player1 and EnemyBase scenes.
-- Existing action resources were cleaned of obsolete manual HitModule entries.
-- The old HitstopModule settings were migrated to HitInstanceData where non-default values existed. The deprecated `HitstopModule` script was removed after checking its script references and all action resource references.
+## 2. Verified completed features
 
-Important preserved behavior:
-- `HitInstanceData` still owns Hitstop settings.
-- Adjusting attacker freeze duration continues to add one frame to target freeze duration.
-- `CombatTimeManager` remains the actual time-freeze executor.
-- `HitManager` remains responsible for target interruption and super-armor comparison.
-- MovementModule, Dash, and Stabilization were not changed by this migration.
+### Player movement and Action interaction
 
-## 3. Existing systems and verified progress
+- Ordinary directional movement is blocked while an Action is running.
+- Direction input continues to be sampled during an Action for subsequent Actions and Jump.
+- Action-to-Jump transitions are complete.
+- Action facing remains locked while an Action is running.
+- Dash uses `CombatActionData` and the unified Action request path.
+- Dash charges are consumed only after a Dash successfully starts.
+- Dash lifecycle tests D-01 through D-07 passed.
+- Stabilization tests S-01 through S-06 passed. S-06 (starting Stabilization in the air while falling) was tested and confirmed normal.
+- MovementTrack editor auto-save is complete.
+- MovementTrack BLOCK / IGNORE_WORLD collision behavior has been tested and accepted:
+  - BLOCK retains normal collision behavior.
+  - IGNORE_WORLD removes only Collision Mask Layer 2.
+  - Layer 1 remains collidable, including colliders that belong to both Layers 1 and 2.
+  - The original Collision Mask is restored when the Movement request ends.
 
+### Death movement
 
-### Unified Action request path
-All formal combat actions must enter through:
+The shared Non-Knockback Death implementation has been tested locally by the user and passed for Player1 and EnemyBase.
 
-`CombatActionRequest` → `CombatComboExecutor.submit_request()`
+- Player1 and EnemyBase use the shared `DeathMovementController`.
+- Ground and airborne deaths use one Non-Knockback mode.
+- A lethal hit supplies its horizontal direction from the Action Context's captured facing direction.
+- With a usable incoming direction, horizontal death speed is exactly 500 in that direction.
+- Without a usable source direction, death-time horizontal velocity is preserved.
+- Horizontal velocity decelerates while gravity remains active.
+- An airborne death bounces once on its first landing, using pre-impact vertical speed multiplied by the configured bounce ratio. A grounded death does not bounce.
+- Death collision retains Layers 1 and 2.
+- Death movement debug data is available for Player and Enemy.
 
-This applies to Player attacks, skills, Enemy attacks, and Dash. Do not bypass this path by calling `CombatActionExecutor.start_action()` directly from a character or controller.
+<badge>Note</badge> Knockback Death is not implemented. It is deferred until `KnockbackModule` exists.
 
-### Action facing lock
-- Action facing is captured in `CombatActionContext`.
-- Facing remains locked while an Action is running, including Dash.
-- New Actions take over the lock when replacing an old Action.
-- Player1 has a corresponding visual-facing update path.
-- Enemy implementation exists; user has not explicitly confirmed its full validation.
+### Combat architecture and editor
 
-### Player movement / Dash
-- Dash is implemented as a normal `CombatActionData` submitted through a `CombatActionRequest`.
-- Dash direction/facing snapshots survive delayed or buffered requests.
-- New Dash input replaces older pending Dash input.
-- Dash charges are only consumed after successful start.
-- D-01 through D-07 lifecycle tests passed, including movement-source takeover and diagonal-down end-velocity protection.
-- Dash Movement can outlive its Action phase; Action completion does not blindly clear an independently running Movement source.
+- Formal combat Actions use the unified `CombatActionRequest` route.
+- Action phases remain Startup → Active → Recovery.
+- HitInstance timing is relative to the beginning of Active.
+- One HitInstance can own multiple Hitboxes and maintains its own target-hit record.
+- Hitstop configuration belongs to HitInstanceData; `CombatTimeManager` remains the time-freeze executor.
+- `CombatDebugOverlay` is the central combat-debug interface.
+- MovementTrack is implemented within `MovementModule`, not as a replacement for it.
+- The Hit Editor includes the Action timeline, HitInstance lanes, MovementTrack lane, frame-snapped playhead, and Actor / Hitbox trajectory preview.
 
-### Stabilization
-- S-01 through S-05 passed.
-- S-06 is not passed: airborne stabilization while falling (`Vy < 0`) can fail to cancel gravity because the stabilization acceleration is lower than gravity. User chose to defer this issue.
-- Vertical stabilization is currently enabled by default and is not exposed as an Inspector toggle.
+These bullets describe the implemented architecture; they do not imply that every editor interaction or runtime edge case has been independently re-tested in the latest local project.
 
-### TimeFreeze
-- `CombatTimeManager` owns Actor-local freeze records.
-- One active freeze record per Actor; new requests refresh/replace rather than stack.
-- `source_id` prevents an old source from cancelling a newer freeze.
-- Input sampling remains available during TimeFreeze; execution/physics is time-controlled.
-- Dash pre-freeze tests were broadly passing.
-- Do not add a global frozen check to `start_action()`.
+## 3. Existing Skill baseline
 
-### Action-time ordinary movement restriction
-User reports this system is now essentially complete. It is not part of the current HitInstance migration task and should not be treated as an active to-do.
-- Ordinary directional movement does not run during an Action.
-- Direction input is still sampled for subsequent Actions/Jump.
-- Existing horizontal velocity is allowed to decay naturally.
-- Action Movement velocity override remains authoritative.
-- Crouch is suppressed during an Action.
+The current implementation still has separate nodes/scripts:
 
-### Defense and interruption
-- `DefenseModule` supports invincibility and damage immunity with phase-range or duration activation.
-- `DefenseController` manages defense sources.
-- `HitManager` retains responsibility for target Action interruption, including Interrupt Level / Super Armor Level comparison.
-- Preserve existing defense source IDs and time-slow-on-success behavior.
-- Do not reintroduce the previously removed Dash-source query for Dash invulnerability.
+- `CombatEnergy`: manages the existing 0–100 energy resource.
+- `SkillSelector`: chooses the normal skill or enhanced special skill, then submits a combo request.
+- `CombatActionData.energy_cost`: stores the energy cost for an individual Action.
 
-## 4. Multi-hit architecture decisions
+Previously confirmed skill behavior to preserve during the refactor:
 
-### Action phases
-- Keep exactly three Action phases: `STARTUP`, `ACTIVE`, `RECOVERY`.
-- Do not add a `GAP` Action phase.
-- Existing Phase Range modules continue to use these three Action phases.
-- HitInstance timing is a separate timeline relative to the beginning of the Action's Active phase.
+- The same Skill input selects the normal skill when energy is insufficient and the enhanced special skill when sufficient.
+- Energy costs are paid per Action segment, not as one up-front combo payment.
+- If energy becomes insufficient partway through an enhanced special combo, the combo may stop at that point.
+- Already-consumed energy is not refunded, and the system does not switch to the normal skill mid-combo.
 
-### HitInstance
-- One HitInstance represents one independent hit opportunity/event.
-- Each instance has `start_time` and `end_time`, relative to Active start.
-- Gaps between HitInstances are allowed while the Action remains in its Active phase.
-- One HitInstance can own multiple Hitboxes; all its Hitboxes open/close together.
-- Each instance has its own target-hit record: a target can be hit once per instance, even if multiple shapes overlap it.
-- A later HitInstance may hit the same target again.
-- No rehit interval is required for the current design.
+The new SkillSystem should consolidate resource management and skill selection while keeping Action execution in the existing Executor / ComboExecutor architecture.
 
-### Runtime hitbox nodes
-- Chosen runtime layout: one `Area2D` per HitInstance, with multiple `CollisionShape2D` children.
-- HitInstanceData and HitboxData are Resources, not scene Nodes.
-- Runtime Areas are created/configured by the runtime hit system.
-- Whether they are direct Player1 children or placed under a container is intentionally undecided. Do not force a `HitboxContainer` into the implementation yet.
+## 4. Next tasks
 
-### Hitstop
-- Hitstop configuration belongs on `HitInstanceData`:
-  - `hitstop_enabled`
-  - `attacker_time_freeze_duration`
-  - `target_time_freeze_duration`
-- `CombatTimeManager` remains the actual time-freeze executor.
-- The old HitstopModule behavior includes a one-frame addition to target freeze duration when attacker duration is adjusted. Preserve this unless a deliberate, discussed change is made.
-- Planned migration: `HitModule` requests hitstop; it does not replace `CombatTimeManager`.
+### 4.1 Unified SkillSystem
 
-### Hit resolution responsibilities
-- Planned `HitModule` responsibilities:
-  - Schedule HitInstances against Active-relative time.
-  - Create/configure and enable/disable runtime hitbox Areas.
-  - Deduplicate targets per HitInstance.
-  - Coordinate damage/defense result and hit feedback.
-  - Request hitstop through `CombatTimeManager`.
-- `HitManager` remains responsible for target Action interruption.
-- Debug damage numbers must remain supported.
-- Do not move every responsibility into the data Resources; Resources store configuration only.
+- [ ] Replace the separate `CombatEnergy` + `SkillSelector` ownership model with one SkillSystem.
+- [ ] Preserve the existing 0–100 energy behavior and normal / enhanced-special selection rules.
+- [ ] Preserve per-Action energy consumption and the confirmed insufficient-energy combo behavior.
+- [ ] Keep skill input configurable through Godot's Input Map; do not hardcode a physical key.
 
-### Hitbox geometry
-Initial shape support:
-- Rectangle
-- Circle
-- Capsule
+### 4.2 Decibel / Ultimate system
 
-The exact fields and shape construction must be checked against the actual `hitbox_data.gd` and Godot API before implementation. A visual Hitbox editor is a future idea, not current scope.
+Planned to reuse the SkillSystem:
 
-## 5. MovementTrack direction
+- [ ] Decibel resource range: 0–3000.
+- [ ] Ultimate is a normal `CombatActionData` Action and uses the unified Action request path.
+- [ ] Default Ultimate cost: 1000 Decibel.
+- [ ] The default cost is internal behavior and must not appear as an editable Inspector property.
+- [ ] The Ultimate input must be a normal configurable Godot Input Map action. The user will assign the key, just as with ordinary controls.
+- [ ] Do not show runtime prompts saying that an input action was created or asking the user to create one.
 
-- `MovementTrack` is implemented as a new mode within `MovementModule`; it does not replace the module.
-- Existing Dash, Velocity Override, Stabilization, Movement Request lifecycle, and Dash TimeFreeze responsibilities remain.
-- Track uses X/Y Curves: normalized progress 0–1 on the horizontal axis and pixel displacement relative to Actor start position on the vertical axis.
-- Duration is runtime seconds; Curve2D trajectories remain a possible later extension.
-- Dash remains on its existing implementation.
-- BLOCK keeps the normal Collision Mask. IGNORE_WORLD temporarily removes only Layer 2 and preserves Layer 1 plus all other mask bits; the original mask is restored when the Movement request ends.
-- Collision layers are now Layer 1 Map Boundary, Layer 2 World Geometry, Layer 3 Player, and Layer 4 Enemy. Ground/platforms use Layer 2; the arena bottom and side boundary guards use Layer 1. Map colliders may belong to both layers.
-- Project physics tick rate is set to 60 Hz. Runtime Action timing remains seconds; Hit Editor's timeline ruler and playhead use 60 Hz frames via CombatTimebase.
-- Hit Editor now displays the full Action phase timeline, HitInstance windows, MovementTrack lane, and a frame-snapped playhead that previews Actor and Hitbox movement.
+Still undecided: how Decibel is gained, whether there are any special gain rules, and any additional Ultimate-specific availability conditions. Do not invent these rules during implementation.
 
-## 6. Immediate next steps
+### 4.3 Deferred combat feature
 
-1. Review PR #2 and synchronize the local project when ready to test.
-2. Open the project in Godot 4.7.2 and confirm there are no script parse errors, invalid resources, or warnings. Confirm Player and Enemy expose `movement_request_handler`; Enemy Action Movement requests remain accepted no-ops without changing AI locomotion.
-3. Re-test Player attacks against Enemy and Enemy Action 01 against Player after the Layer 1–4 migration.
-4. Test MovementTrack BLOCK against walls, platforms, and ground; test IGNORE_WORLD against Layer 2 and Layer 1 objects.
-5. Confirm IGNORE_WORLD restores the exact original Collision Mask after normal completion, Action cancellation, replacement, and Jump interruption.
-6. Test X/Y curves, positive/negative displacement, durations, and movement with gravity suppressed while the Track is active.
-7. In Hit Editor, scrub by frame and confirm the Actor and Hitboxes follow the MovementTrack preview; verify selection and dragging still work at non-zero playhead positions.
-8. Re-test HitInstance timing, per-instance deduplication, Hitstop, DebugOverlay, Hitbox layer ordering, Undo/Redo, and visibility toggles.
-9. Only after these checks pass, mark the MovementTrack and editor updates complete.
+- [ ] Knockback Death, after `KnockbackModule` is implemented. It should use the future KnockbackModule vector, preserve vector direction when enforcing a minimum whole-vector speed, and support one landing bounce.
 
-## 7. Collaboration constraints
+## 5. Explicitly removed / not planned
+
+- Heavy / charged attack interactions that continue or alter an attack through Dodge are cancelled and are no longer a CombatLab task.
+- Ground reverse-deceleration as a separate parameter is not an agreed requirement and must not be reintroduced as a pending task.
+- Stabilization S-06 is complete; do not list it as pending.
+
+## 6. Collaboration and implementation constraints
 
 - Make small, explainable changes; avoid broad refactors.
-- Use complete replacement scripts when edits span multiple scattered sections.
 - GDScript indentation must use tabs.
-- Script files, variables, and functions use lowercase `snake_case`; node names may use PascalCase (e.g. `Player1`).
+- Script files, variables, and functions use lowercase `snake_case`; node names may use PascalCase.
 - Avoid unused variables, speculative fields, and unnecessary abstraction.
-- Do not guess current source code: use the latest files the user provides.
+- New combat features must include `CombatDebugOverlay` support from the start.
 - Do not add art or generate images unless explicitly requested.
-
-
-## 8. Shared Movement Request Interface (2026-11-27)
-
-- Added the `CombatMovementInterface` request contract and shared Action end-reason enum.
-- `MovementModule` now resolves `Actor.movement_request_handler` and no longer casts to `PlayerMovementController`.
-- Player1 exposes its existing `PlayerMovementController` through `movement_request_handler`; player movement behavior is unchanged.
-- EnemyBase exposes its existing `EnemyMovementController` through the same property. The enemy controller implements no-op request/lifecycle methods only; AI locomotion is unchanged and Action-driven enemy movement remains unimplemented.
-- Godot runtime validation is still pending; this change has been statically reviewed only.
-
-
-## 9. MovementTrack implementation status (2026-11-27)
-
-- Runtime X/Y Curve sampling and MovementTrack velocity handoff are implemented in PlayerMovementController.
-- BLOCK and IGNORE_WORLD are wired through MovementModule. IGNORE_WORLD removes only the Layer 2 mask bit and restores the captured mask on movement cleanup.
-- Runtime debug shows the MovementTrack path, progress, displacement, collision strategy, and current mask.
-- Hit Editor has the full Action timeline, HitInstance lanes, MovementTrack lane, frame-snapped playhead, and Actor/Hitbox trajectory preview.
-- Collision layer assignments and Player/Enemy Action hit masks were shifted to preserve target detection.
-- Godot 4.7.2 import, parse, editor, and runtime tests have not yet been run. Treat all runtime behavior as pending local verification.
-
-
-## 10. User-confirmed completion update (2026-11-28)
-
-The user explicitly reconfirmed that the following features are complete:
-- Ordinary movement is blocked while an Action is active.
-- Direction input is still sampled while an Action is active.
-- Action-to-Jump transitions are complete.
-- MovementTrack editor auto-save is complete.
-
-These are completed items, not current to-dos. Preserve this status in future progress summaries.
-
-MovementTrack collision behavior (BLOCK / IGNORE_WORLD and Collision Layer / Mask handling) has also been tested by the user and accepted as working. Do not reopen collision debugging unless the user reports a new regression.
-
-Current narrow UI investigation:
-- The remaining issue is the MovementTrack floating editor panel layout: SpinBox / OptionButton appear too wide, and the CurveGraph Control rectangle itself extends beyond the panel's right edge.
-- The user's current local CurveGraph._ready() already has custom_minimum_size = Vector2(0.0, 150.0), so its former 270 px minimum width is not the cause.
-- CurveGraph instances are created in _ready() and inserted through _make_graph_section():
-  `x_graph = CurveGraph.new()`
-  `content.add_child(_make_graph_section("Track_X", x_graph, true))`
-  `y_graph = CurveGraph.new()`
-  `content.add_child(_make_graph_section("Track_Y", y_graph, false))`
-- The next layout investigation should inspect the full parent/child sizing chain around ScrollContainer, content VBoxContainer, _make_graph_section(), and the panel's resize logic. Avoid broad searches for SIZE_EXPAND_FILL; inspect the specific hierarchy.
-
-
-## 11. Death movement update (2026-11-28)
-
-Implemented on the GPT branch; Godot runtime validation is pending.
-
-- Added shared `DeathMovementController` for Player1 and EnemyBase.
-- Ground Death and Air Death are unified as `Non-Knockback Death`; no separate ground/air mode is used.
-- Lethal HitModule damage now passes the incoming horizontal attack direction from the Action Context's captured facing direction to the target.
-- With an incoming attack direction, Non-Knockback Death sets X velocity to exactly 500 toward the attack direction. With no usable source direction, it preserves the death-time X velocity.
-- Horizontal velocity gradually decelerates while gravity remains active.
-- Airborne deaths bounce once on first landing, using pre-impact vertical speed multiplied by the configured bounce ratio. Grounded deaths do not bounce.
-- Death collision masks include Layers 1 and 2.
-- Player death movement state is shown in CombatDebugOverlay; EnemyBase exposes the same controller debug data.
-- Knockback Death is not implemented. Add it after KnockbackModule exists, including whole-vector minimum-speed protection and one landing bounce.
-- No death animation has been added yet.
+- The user's `本地修改分支` is read-only for assistant changes. Assistant code/document changes belong only on the `GPT` branch.
+- Do not claim local runtime validation unless the user confirms it.
