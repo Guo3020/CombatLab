@@ -19,14 +19,14 @@ metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 [sub_resource type="Curve" id="Curve_bcveu"]
 resource_name = "MovementTrack Curve"
 _limits = [-1000.0, 1000.0, 0.0, 1.0]
-bake_resolution = 8
+bake_resolution = 1000
 _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 2
 
 [sub_resource type="Curve" id="Curve_5bglr"]
 resource_name = "MovementTrack Curve"
 _limits = [-1000.0, 1000.0, 0.0, 1.0]
-bake_resolution = 8
+bake_resolution = 1000
 _data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
 point_count = 2
 
