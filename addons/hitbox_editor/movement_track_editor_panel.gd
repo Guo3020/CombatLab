@@ -15,6 +15,8 @@ const AXIS_RANGE_MAX := 1000000000.0
 
 var movement: MovementModule
 var scroll: ScrollContainer
+var content: VBoxContainer
+var empty_state: Label
 var root_layout: VBoxContainer
 var overlay: Control
 var duration_axis_buttons: Array[Button] = []
@@ -83,8 +85,8 @@ class CurveGraph extends Control:
 		if curve == null:
 			return
 		var line_points := PackedVector2Array()
-		for i in range(65):
-			var progress := float(i) / 64.0
+		for i in range(257):
+			var progress := float(i) / 256.0
 			line_points.append(_curve_to_screen(Vector2(progress, curve.sample_baked(progress))))
 		if line_points.size() > 1:
 			draw_polyline(line_points, Color(0.3, 0.92, 0.74, 0.95), 2.0, true)
@@ -171,7 +173,6 @@ class CurveGraph extends Control:
 			return
 		curve.add_point(point)
 		selected_point = _find_nearest_point(_curve_to_screen(point))
-		curve.emit_changed()
 		queue_redraw()
 
 	func _move_selected_point(screen_position: Vector2) -> void:
@@ -188,8 +189,8 @@ class CurveGraph extends Control:
 			var max_x := curve.get_point_position(dragging_point + 1).x - 0.001
 			point.x = clampf(point.x, min_x, max_x)
 		if old_point.distance_squared_to(point) > 0.000001:
-			curve.set_point_position(dragging_point, point)
-			curve.emit_changed()
+			curve.set_point_offset(dragging_point, point.x)
+			curve.set_point_value(dragging_point, point.y)
 			queue_redraw()
 
 	func _delete_selected_point() -> void:
@@ -198,12 +199,11 @@ class CurveGraph extends Control:
 		curve.remove_point(selected_point)
 		selected_point = -1
 		dragging_point = -1
-		curve.emit_changed()
 		queue_redraw()
 
 
 func _ready() -> void:
-	visible = false
+	visible = movement != null
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	custom_minimum_size = Vector2(280.0, 300.0)
 	size = Vector2(PANEL_WIDTH, 430)
@@ -232,6 +232,14 @@ func _ready() -> void:
 	header.mouse_default_cursor_shape = Control.CURSOR_MOVE
 	header.gui_input.connect(_on_header_input)
 	root_layout.add_child(header)
+
+	empty_state = Label.new()
+	empty_state.text = "当前 Action 没有启用 MovementTrack。"
+	empty_state.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	empty_state.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	empty_state.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root_layout.add_child(empty_state)
+
 	var title := Label.new()
 	title.text = "MovementTrack"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -247,7 +255,8 @@ func _ready() -> void:
 	scroll.custom_minimum_size = Vector2.ZERO
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root_layout.add_child(scroll)
-	var content := VBoxContainer.new()
+	scroll.visible = false
+	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.custom_minimum_size.x = 0.0
 	content.add_theme_constant_override("separation", 6)
@@ -298,6 +307,8 @@ func _ready() -> void:
 	number_dialog.confirmed.connect(_on_number_confirmed)
 
 	_create_resize_grips()
+	_connect_movement_signals()
+	_refresh()
 
 
 func _make_label(value: String) -> Label:
@@ -352,34 +363,46 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 
 
 func set_movement(value: MovementModule) -> void:
-	visible = value != null
-	if movement == value:
+	if movement != value:
+		if movement != null:
+			if movement.changed.is_connected(_refresh):
+				movement.changed.disconnect(_refresh)
+			for old_curve in [movement.movement_track_x, movement.movement_track_y]:
+				if old_curve != null and old_curve.changed.is_connected(_refresh):
+					old_curve.changed.disconnect(_refresh)
+		movement = value
+
+	visible = movement != null
+	if not is_node_ready():
 		return
-	if movement != null and movement.changed.is_connected(_refresh):
-		movement.changed.disconnect(_refresh)
-	movement = value
-	if not is_node_ready() or movement == null:
-		return
-	if not movement.changed.is_connected(_refresh):
-		movement.changed.connect(_refresh)
-	if movement.movement_track_x != null and not movement.movement_track_x.changed.is_connected(_refresh):
-		movement.movement_track_x.changed.connect(_refresh)
-	if movement.movement_track_y != null and not movement.movement_track_y.changed.is_connected(_refresh):
-		movement.movement_track_y.changed.connect(_refresh)
+	_connect_movement_signals()
 	_refresh()
 
 
-func _refresh() -> void:
+func _connect_movement_signals() -> void:
 	if movement == null:
 		return
+	# Assign inspector filter names before connecting changed signals.
 	if movement.movement_track_x != null:
-		movement.movement_track_x.resource_name = "MovementTrack X Curve"
+		if movement.movement_track_x.resource_name != "MovementTrack X Curve":
+			movement.movement_track_x.resource_name = "MovementTrack X Curve"
 		if not movement.movement_track_x.changed.is_connected(_refresh):
 			movement.movement_track_x.changed.connect(_refresh)
 	if movement.movement_track_y != null:
-		movement.movement_track_y.resource_name = "MovementTrack Y Curve"
+		if movement.movement_track_y.resource_name != "MovementTrack Y Curve":
+			movement.movement_track_y.resource_name = "MovementTrack Y Curve"
 		if not movement.movement_track_y.changed.is_connected(_refresh):
 			movement.movement_track_y.changed.connect(_refresh)
+	if not movement.changed.is_connected(_refresh):
+		movement.changed.connect(_refresh)
+
+
+func _refresh() -> void:
+	var has_movement := movement != null
+	empty_state.visible = not has_movement
+	scroll.visible = has_movement
+	if not has_movement:
+		return
 	duration_spin.set_value_no_signal(movement.movement_track_duration)
 	for axis_button in duration_axis_buttons:
 		axis_button.text = "%.2fs" % movement.movement_track_duration

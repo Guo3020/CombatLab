@@ -184,8 +184,10 @@ func _process(_delta: float) -> void:
 		tree_panel.custom_minimum_size.x = new_width
 		_position_resize_grip()
 
-	if movement_track_panel.get("movement") != _get_movement_track_module():
-		movement_track_panel.call("set_movement", _get_movement_track_module())
+	if is_instance_valid(movement_track_panel):
+		var movement_module := _get_movement_track_module()
+		if movement_track_panel.get("movement") != movement_module:
+			movement_track_panel.call("set_movement", movement_module)
 
 	if action_data == null:
 		return
@@ -311,8 +313,25 @@ func _connect_resource_changes() -> void:
 		for hitbox in instance.hitboxes:
 			if hitbox != null and not hitbox.changed.is_connected(_on_action_resource_changed):
 				hitbox.changed.connect(_on_action_resource_changed)
+	for module in action_data.modules:
+		if not module is MovementModule:
+			continue
+		var movement := module as MovementModule
+		if not movement.changed.is_connected(_on_module_resource_changed):
+			movement.changed.connect(_on_module_resource_changed)
+		for curve in [movement.movement_track_x, movement.movement_track_y]:
+			if curve != null and not curve.changed.is_connected(_on_module_resource_changed):
+				curve.changed.connect(_on_module_resource_changed)
+
+func _on_module_resource_changed() -> void:
+	if action_data == null:
+		return
+	# Child Resources do not automatically mark their owning ActionData as edited.
+	action_data.emit_changed()
 
 func _on_action_resource_changed() -> void:
+	if action_data != null:
+		EditorInterface.set_object_edited(action_data, true)
 	if is_instance_valid(canvas):
 		canvas.queue_redraw()
 	if is_instance_valid(timeline):

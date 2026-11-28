@@ -52,10 +52,17 @@ enum StabilizationPhase {
 
 @export_group("额外位移")
 
-@export var movement_mode: MovementMode = MovementMode.NONE:
+var _movement_mode: MovementMode = MovementMode.NONE
+
+@export var movement_mode: MovementMode:
+	get:
+		return _movement_mode
 	set(value):
-		movement_mode = value
-		notify_property_list_changed()
+		if _movement_mode == value:
+			return
+		_movement_mode = value
+		call_deferred("notify_property_list_changed")
+		emit_changed()
 
 
 func _validate_property(property: Dictionary) -> void:
@@ -287,7 +294,7 @@ func _initialize_flat_track_curve(curve: Curve) -> void:
 
 	curve.min_value = -1000.0
 	curve.max_value = 1000.0
-	curve.bake_resolution = 8
+	curve.bake_resolution = 1000.0
 
 
 # ==================================================

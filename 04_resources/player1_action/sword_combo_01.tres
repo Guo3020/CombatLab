@@ -17,38 +17,30 @@ script = ExtResource("1_tehj2")
 hitboxes = Array[ExtResource("2_a1xv0")]([SubResource("Resource_a1xv0")])
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
+[sub_resource type="Curve" id="Curve_4ikgc"]
+resource_name = "MovementTrack X Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 1000
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.06451613, 100), 0.0, 0.0, 0, 0, Vector2(1, 33.333332), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="Curve" id="Curve_tehj2"]
+resource_name = "MovementTrack Y Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 1000
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.20564516, -63.157894), 0.0, 0.0, 0, 0, Vector2(0.625, -15.789474), 0.0, 0.0, 0, 0, Vector2(1, 100), 0.0, 0.0, 0, 0]
+point_count = 4
+
 [sub_resource type="Resource" id="Resource_pfusb"]
 script = ExtResource("4_4ikgc")
-movement_mode = 0
+movement_mode = 3
 stabilization_enabled = false
-stabilization_activation_mode = 0
 stabilization_speed = 1000.0
-stabilization_start_phase = 0
-stabilization_end_phase = 2
-stabilization_duration_start_phase = 1
-stabilization_duration = 0.2
-dash_speed = 960.0
-dash_duration = 0.15
-dash_up_end_y_multiplier = 0.75
-dash_diagonal_up_end_y_multiplier = 0.75
-dash_duck_speed_multiplier = 1.2
-end_velocity_enabled = true
-exclude_diagonal_down_end = true
-dash_time_freeze_enabled = false
-dash_time_freeze_duration = 0.05
-end_velocity_mode = 0
-end_speed = 160.0
-override_phase_mode = 0
-override_duration = 0.15
-override_speed = 240.0
-override_direction_source = 0
-override_custom_direction = Vector2(1, 0)
-override_suppress_gravity = false
-module_enabled = true
+movement_track_x = SubResource("Curve_4ikgc")
+movement_track_y = SubResource("Curve_tehj2")
 metadata/_custom_type_script = "uid://dp5gttsshciy0"
 
 [resource]
-collision_mask = 8
 script = ExtResource("2_cfh8u")
 action_id = &"sword_combo_01"
 action_name = "第一段：快速横斩"

@@ -1123,6 +1123,15 @@ func _update_movement_track(
 
 	var frame_displacement := next_displacement - movement_track_displacement
 	var output_velocity := frame_displacement / actor_delta
+	print(
+		"MovementTrack Debug | Progress: %.3f | Y Sample: %.3f | Y Displacement: %.3f | Y Velocity: %.3f"
+		% [
+			progress,
+			y_curve.sample_baked(progress),
+			frame_displacement.y,
+			output_velocity.y
+		]
+	)
 
 	movement_phase_elapsed = next_elapsed
 	movement_track_progress = progress
