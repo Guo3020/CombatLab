@@ -239,16 +239,17 @@ func _can_buffer_combo(
 	if new_action.action_priority > current_action.action_priority:
 		return false
 
-	# 检查能量，但不在这里扣除。
-	if new_action.energy_cost > 0.0:
-		var energy := actor.get_node_or_null(
-			"CombatEnergy"
-		) as CombatEnergy
+	# 检查 Action 所需资源，但不在缓存阶段扣除。
+	var decibel_cost := new_action.get_decibel_cost()
+	if new_action.energy_cost > 0.0 or decibel_cost > 0.0:
+		var skill_system := actor.get_node_or_null(
+			"SkillSystem"
+		) as SkillSystem
 
-		if energy == null:
+		if skill_system == null:
 			return false
 
-		if not energy.has_enough_energy(new_action.energy_cost):
+		if not skill_system.can_pay_action_cost(new_action):
 			return false
 
 	# 只检查当前动作在未来阶段是否允许被取消。
