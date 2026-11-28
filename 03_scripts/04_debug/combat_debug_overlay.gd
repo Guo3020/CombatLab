@@ -1501,7 +1501,7 @@ func _draw_death_test_controls() -> void:
 	draw_string(
 		ThemeDB.fallback_font,
 		Vector2(20.0, 30.0),
-		"F9：受到 10 倍最大生命值伤害    F10：直接死亡",
+		"Debug 输入映射：debug_player_massive_damage（大量伤害）  |  debug_player_die（直接死亡）",
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
 		14,
