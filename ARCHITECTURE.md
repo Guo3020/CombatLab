@@ -316,6 +316,8 @@ The Hit Editor timeline now spans Startup → Active → Recovery, displays HitI
 
 - `SkillSystem` replaces the former separate `CombatEnergy` and `SkillSelector` nodes.
 - SkillSystem owns Energy (0–100), Decibel (0–3000), normal / enhanced-special selection, and Ultimate request submission.
+- Normal Skill and enhanced Special Skill may each be configured as either one `CombatActionData` or one `CombatComboData`; assign exactly one resource type per skill slot.
+- A single-Action skill is submitted as `START_ACTION`; a Combo skill is submitted as `START_COMBO`. Both use the same `CombatActionRequest` → `CombatComboExecutor.submit_request()` execution route.
 - Existing skill input behavior is preserved: the enhanced special skill is selected when its first Action's resource cost can be paid; otherwise the normal skill is selected.
 - Energy remains a per-Action cost. Each Action segment is checked and paid when its Action starts, not as one up-front combo payment.
 - `CombatActionData.energy_cost` remains an Inspector-visible Energy cost.
