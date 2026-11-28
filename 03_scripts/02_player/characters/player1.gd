@@ -12,6 +12,11 @@ signal debug_damage_number(world_position: Vector2, amount: float)
 @export_group("生命值")
 @export var max_health: float = 100.0
 
+@export_group("死亡移动")
+@export var death_horizontal_deceleration: float = 900.0
+@export_range(0.0, 1.0, 0.05)
+var death_landing_bounce_ratio: float = 0.35
+
 @export_group("受击设置")
 @export_range(0, 10, 1)
 var default_super_armor_level: int = 0
@@ -108,6 +113,7 @@ var skill_input_pending: bool = false
 var facing_direction: float = 1.0
 
 var movement_controller: PlayerMovementController
+var death_movement_controller: DeathMovementController
 
 # MovementModule 使用的统一请求入口；实际控制器仍由 PlayerMovementController 承担。
 var movement_request_handler: Object:
@@ -152,6 +158,7 @@ func _ready() -> void:
 		combat_combo_executor,
 		self
 	)
+	death_movement_controller = DeathMovementController.new()
 
 	movement_controller.dash_action_data = dash_action_data
 	movement_controller.dash_max_charges = dash_max_charges
@@ -376,13 +383,9 @@ func _physics_process(delta: float) -> void:
 	# 死亡后不再执行输入、Action 或普通移动逻辑，
 	# 但保留独立的重力与碰撞更新。
 	if is_dead:
-		velocity = movement_controller.apply_gravity(
-			actor_delta,
-			velocity,
-			is_on_floor(),
-			false
-		)
+		death_movement_controller.update_before_move(actor_delta)
 		_move_and_slide_with_time_scale(actor_delta, delta)
+		death_movement_controller.update_after_move()
 		return
 
 	# --------------------------------------------------
@@ -620,7 +623,10 @@ func _process_skill_input() -> void:
 # 生命值与受击
 # ==================================================
 
-func take_damage(damage: float) -> void:
+func take_damage(
+	damage: float,
+	attack_direction: Vector2 = Vector2.ZERO
+) -> void:
 	if is_dead:
 		return
 
@@ -631,10 +637,10 @@ func take_damage(damage: float) -> void:
 	debug_damage_number.emit(global_position, damage)
 
 	if current_health <= 0.0:
-		die()
+		die(attack_direction)
 
 
-func die() -> void:
+func die(attack_direction: Vector2 = Vector2.ZERO) -> void:
 	if is_dead:
 		return
 
@@ -681,6 +687,18 @@ func die() -> void:
 
 	# Action / Movement 清理回调可能改写速度，恢复死亡瞬间的速度。
 	velocity = death_velocity
+
+	# 死亡移动使用独立控制器，不再继续执行普通 Movement。
+	# Layer 1 / Layer 2 在死亡期间都保持碰撞。
+	set_collision_mask_value(1, true)
+	set_collision_mask_value(2, true)
+	death_movement_controller.begin_non_knockback(
+		self,
+		attack_direction,
+		movement_controller.gravity,
+		death_horizontal_deceleration,
+		death_landing_bounce_ratio
+	)
 
 
 # ==================================================
@@ -791,7 +809,8 @@ func get_death_cleanup_debug_data() -> Dictionary:
 		"duck_and_landing_clear": duck_and_landing_clear,
 		"debug_timeline_clear": debug_timeline_clear,
 		"collision_mask_layers": collision_mask_layers,
-		"death_velocity": velocity
+		"death_velocity": velocity,
+		"death_movement": death_movement_controller.get_debug_data()
 	}
 
 
