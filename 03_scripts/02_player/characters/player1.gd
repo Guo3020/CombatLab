@@ -624,7 +624,6 @@ func _process_skill_input() -> void:
 		return
 
 	skill_input_pending = false
-	ultimate_input_pending = false
 
 	skill_system.request_skill()
 
