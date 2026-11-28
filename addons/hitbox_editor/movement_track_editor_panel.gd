@@ -85,8 +85,8 @@ class CurveGraph extends Control:
 		if curve == null:
 			return
 		var line_points := PackedVector2Array()
-		for i in range(65):
-			var progress := float(i) / 64.0
+		for i in range(257):
+			var progress := float(i) / 256.0
 			line_points.append(_curve_to_screen(Vector2(progress, curve.sample_baked(progress))))
 		if line_points.size() > 1:
 			draw_polyline(line_points, Color(0.3, 0.92, 0.74, 0.95), 2.0, true)
@@ -173,7 +173,6 @@ class CurveGraph extends Control:
 			return
 		curve.add_point(point)
 		selected_point = _find_nearest_point(_curve_to_screen(point))
-		curve.emit_changed()
 		queue_redraw()
 
 	func _move_selected_point(screen_position: Vector2) -> void:
@@ -191,7 +190,6 @@ class CurveGraph extends Control:
 			point.x = clampf(point.x, min_x, max_x)
 		if old_point.distance_squared_to(point) > 0.000001:
 			curve.set_point_position(dragging_point, point)
-			curve.emit_changed()
 			queue_redraw()
 
 	func _delete_selected_point() -> void:
@@ -200,12 +198,11 @@ class CurveGraph extends Control:
 		curve.remove_point(selected_point)
 		selected_point = -1
 		dragging_point = -1
-		curve.emit_changed()
 		queue_redraw()
 
 
 func _ready() -> void:
-	visible = true
+	visible = movement != null
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	custom_minimum_size = Vector2(280.0, 300.0)
 	size = Vector2(PANEL_WIDTH, 430)
@@ -309,6 +306,7 @@ func _ready() -> void:
 	number_dialog.confirmed.connect(_on_number_confirmed)
 
 	_create_resize_grips()
+	_refresh()
 
 
 func _make_label(value: String) -> Label:
@@ -363,24 +361,39 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 
 
 func set_movement(value: MovementModule) -> void:
-	visible = true
 	if movement == value:
+		visible = movement != null
 		_refresh()
 		return
-	if movement != null and movement.changed.is_connected(_refresh):
-		movement.changed.disconnect(_refresh)
+
+	if movement != null:
+		if movement.changed.is_connected(_refresh):
+			movement.changed.disconnect(_refresh)
+		for old_curve in [movement.movement_track_x, movement.movement_track_y]:
+			if old_curve != null and old_curve.changed.is_connected(_refresh):
+				old_curve.changed.disconnect(_refresh)
+
 	movement = value
+	visible = movement != null
 	if not is_node_ready():
 		return
 	if movement == null:
 		_refresh()
 		return
+
+	# Assign inspector filter names before connecting changed signals.
+	if movement.movement_track_x != null:
+		if movement.movement_track_x.resource_name != "MovementTrack X Curve":
+			movement.movement_track_x.resource_name = "MovementTrack X Curve"
+		if not movement.movement_track_x.changed.is_connected(_refresh):
+			movement.movement_track_x.changed.connect(_refresh)
+	if movement.movement_track_y != null:
+		if movement.movement_track_y.resource_name != "MovementTrack Y Curve":
+			movement.movement_track_y.resource_name = "MovementTrack Y Curve"
+		if not movement.movement_track_y.changed.is_connected(_refresh):
+			movement.movement_track_y.changed.connect(_refresh)
 	if not movement.changed.is_connected(_refresh):
 		movement.changed.connect(_refresh)
-	if movement.movement_track_x != null and not movement.movement_track_x.changed.is_connected(_refresh):
-		movement.movement_track_x.changed.connect(_refresh)
-	if movement.movement_track_y != null and not movement.movement_track_y.changed.is_connected(_refresh):
-		movement.movement_track_y.changed.connect(_refresh)
 	_refresh()
 
 
@@ -390,14 +403,6 @@ func _refresh() -> void:
 	scroll.visible = has_movement
 	if not has_movement:
 		return
-	if movement.movement_track_x != null:
-		movement.movement_track_x.resource_name = "MovementTrack X Curve"
-		if not movement.movement_track_x.changed.is_connected(_refresh):
-			movement.movement_track_x.changed.connect(_refresh)
-	if movement.movement_track_y != null:
-		movement.movement_track_y.resource_name = "MovementTrack Y Curve"
-		if not movement.movement_track_y.changed.is_connected(_refresh):
-			movement.movement_track_y.changed.connect(_refresh)
 	duration_spin.set_value_no_signal(movement.movement_track_duration)
 	for axis_button in duration_axis_buttons:
 		axis_button.text = "%.2fs" % movement.movement_track_duration
