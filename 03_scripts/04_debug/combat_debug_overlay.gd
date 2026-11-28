@@ -381,24 +381,23 @@ func _draw_movement_track_path() -> void:
 	var facing_direction := -1.0 if float(
 		request.get("movement_track_facing_direction", 1)
 	) < 0.0 else 1.0
-	var start_displacement := Vector2(
-		x_curve.sample_baked(0.0) * facing_direction,
-		-y_curve.sample_baked(0.0)
+	var current_progress: float = controller.movement_track_progress
+	var current_curve_position := Vector2(
+		x_curve.sample_baked(current_progress) * facing_direction,
+		-y_curve.sample_baked(current_progress)
 	)
-	var current_displacement: Vector2 = controller.movement_track_displacement
-
-	# 用当前角色位置反推轨迹起点，使当前进度点始终与角色位置重合。
-	var path_origin: Vector2 = player.global_position - current_displacement
 	var points := PackedVector2Array()
 
+	# 以角色当前位置为锚点，绘制相对于当前轨迹进度的前后路径。
 	for index in range(21):
 		var progress := float(index) / 20.0
-		var displacement := Vector2(
+		var curve_position := Vector2(
 			x_curve.sample_baked(progress) * facing_direction,
 			-y_curve.sample_baked(progress)
-		) - start_displacement
+		)
+		var relative_displacement := curve_position - current_curve_position
 		points.append(
-			_world_to_screen(path_origin + displacement)
+			_world_to_screen(player.global_position + relative_displacement)
 		)
 
 	if points.size() >= 2:
