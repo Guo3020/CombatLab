@@ -47,6 +47,16 @@ var input_window: float = 0.15
 @export_range(0.0, 100.0, 1.0)
 var energy_cost: float = 0.0
 
+# Hidden from Inspector. Only Ultimate Actions consume Decibel.
+@export_storage var decibel_cost: float = 1000.0
+
+
+func get_decibel_cost() -> float:
+	if action_type != &"ultimate":
+		return 0.0
+
+	return maxf(decibel_cost, 0.0)
+
 
 # ==================================================
 # 动作覆盖与取消
