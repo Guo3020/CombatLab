@@ -4,7 +4,7 @@ extends PanelContainer
 class_name MovementTrackEditorPanel
 
 const PANEL_WIDTH := 320.0
-const MIN_PANEL_WIDTH := 140.0
+const MIN_PANEL_WIDTH := 200.0
 const MAX_PANEL_WIDTH := 900.0
 const MIN_PANEL_HEIGHT := 300.0
 const MAX_PANEL_HEIGHT := 1000.0
@@ -272,29 +272,36 @@ func _ready() -> void:
 
 	var duration_row := HBoxContainer.new()
 	content.add_child(duration_row)
-	duration_row.add_child(_make_label("持续时间"))
 	duration_row.clip_contents = true
 	duration_row.add_theme_constant_override("separation", 4)
+	duration_row.add_child(_make_label("持续时间"))
+	var duration_spacer := Control.new()
+	duration_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	duration_row.add_child(duration_spacer)
 	duration_spin = SpinBox.new()
 	duration_spin.min_value = 0.01
 	duration_spin.max_value = DURATION_MAX
 	duration_spin.step = 0.01
-	duration_spin.custom_minimum_size.x = 0.0
 	duration_spin.value = 0.2
-	duration_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	duration_spin.custom_minimum_size.x = 30.0
+	duration_spin.size_flags_horizontal = Control.SIZE_SHRINK_END
 	duration_spin.value_changed.connect(_on_duration_changed)
 	duration_row.add_child(duration_spin)
 
 	var collision_row := HBoxContainer.new()
 	content.add_child(collision_row)
-	collision_row.add_child(_make_label("碰撞策略"))
 	collision_row.clip_contents = true
 	collision_row.add_theme_constant_override("separation", 4)
+	collision_row.add_child(_make_label("碰撞策略"))
+	var collision_spacer := Control.new()
+	collision_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	collision_row.add_child(collision_spacer)
 	collision_option = OptionButton.new()
 	collision_option.add_item("BLOCK", MovementModule.MovementCollisionStrategy.BLOCK)
-	collision_option.add_item("IGNORE_WORLD", MovementModule.MovementCollisionStrategy.IGNORE_WORLD)
-	collision_option.custom_minimum_size.x = 0.0
-	collision_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	collision_option.add_item("IGNORE", MovementModule.MovementCollisionStrategy.IGNORE_WORLD)
+	collision_option.fit_to_longest_item = false
+	collision_option.custom_minimum_size.x = 30.0
+	collision_option.size_flags_horizontal = Control.SIZE_SHRINK_END
 	collision_option.item_selected.connect(_on_collision_changed)
 	collision_row.add_child(collision_option)
 
@@ -326,7 +333,7 @@ func _ready() -> void:
 func _make_label(value: String) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.custom_minimum_size.x = 58.0
+	label.custom_minimum_size.x = 110.0
 	label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	label.clip_text = true
 	return label
