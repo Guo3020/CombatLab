@@ -1,4 +1,3 @@
-
 @tool
 extends PanelContainer
 
@@ -406,6 +405,7 @@ func set_movement(value: MovementModule) -> void:
 func _connect_movement_signals() -> void:
 	if movement == null:
 		return
+	# Assign inspector filter names before connecting changed signals.
 	if movement.movement_track_x != null:
 		if movement.movement_track_x.resource_name != "MovementTrack X Curve":
 			movement.movement_track_x.resource_name = "MovementTrack X Curve"
@@ -435,7 +435,6 @@ func _refresh() -> void:
 
 
 signal edit_committed
-
 
 func _on_curve_edit_committed() -> void:
 	edit_committed.emit()

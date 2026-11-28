@@ -199,3 +199,26 @@ The exact fields and shape construction must be checked against the actual `hitb
 - Hit Editor has the full Action timeline, HitInstance lanes, MovementTrack lane, frame-snapped playhead, and Actor/Hitbox trajectory preview.
 - Collision layer assignments and Player/Enemy Action hit masks were shifted to preserve target detection.
 - Godot 4.7.2 import, parse, editor, and runtime tests have not yet been run. Treat all runtime behavior as pending local verification.
+
+
+## 10. User-confirmed completion update (2026-11-28)
+
+The user explicitly reconfirmed that the following features are complete:
+- Ordinary movement is blocked while an Action is active.
+- Direction input is still sampled while an Action is active.
+- Action-to-Jump transitions are complete.
+- MovementTrack editor auto-save is complete.
+
+These are completed items, not current to-dos. Preserve this status in future progress summaries.
+
+MovementTrack collision behavior (BLOCK / IGNORE_WORLD and Collision Layer / Mask handling) has also been tested by the user and accepted as working. Do not reopen collision debugging unless the user reports a new regression.
+
+Current narrow UI investigation:
+- The remaining issue is the MovementTrack floating editor panel layout: SpinBox / OptionButton appear too wide, and the CurveGraph Control rectangle itself extends beyond the panel's right edge.
+- The user's current local CurveGraph._ready() already has custom_minimum_size = Vector2(0.0, 150.0), so its former 270 px minimum width is not the cause.
+- CurveGraph instances are created in _ready() and inserted through _make_graph_section():
+  `x_graph = CurveGraph.new()`
+  `content.add_child(_make_graph_section("Track_X", x_graph, true))`
+  `y_graph = CurveGraph.new()`
+  `content.add_child(_make_graph_section("Track_Y", y_graph, false))`
+- The next layout investigation should inspect the full parent/child sizing chain around ScrollContainer, content VBoxContainer, _make_graph_section(), and the panel's resize logic. Avoid broad searches for SIZE_EXPAND_FILL; inspect the specific hierarchy.

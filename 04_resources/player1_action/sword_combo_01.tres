@@ -19,14 +19,16 @@ metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
 [sub_resource type="Curve" id="Curve_4ikgc"]
 resource_name = "MovementTrack X Curve"
-_data = [Vector2(0, 3.508772), 0.0, 0.0, 0, 0, Vector2(0.328084, -36.842106), 0.0, 0.0, 0, 0, Vector2(1, 77.192986), 0.0, 0.0, 0, 0]
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 1000
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.5555556, 45.614037), 0.0, 0.0, 0, 0, Vector2(1, 35.08772), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="Curve" id="Curve_tehj2"]
 resource_name = "MovementTrack Y Curve"
 _limits = [-1000.0, 1000.0, 0.0, 1.0]
 bake_resolution = 1000
-_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.32978722, 89.47369), 0.0, 0.0, 0, 0, Vector2(0.69148934, -87.7193), 0.0, 0.0, 0, 0, Vector2(1, -84.210526), 0.0, 0.0, 0, 0]
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(0.27513227, -52.63158), 0.0, 0.0, 0, 0, Vector2(0.515873, 7.017544), 0.0, 0.0, 0, 0, Vector2(1, 100), 0.0, 0.0, 0, 0]
 point_count = 4
 
 [sub_resource type="Resource" id="Resource_pfusb"]
@@ -34,10 +36,9 @@ script = ExtResource("4_4ikgc")
 movement_mode = 3
 stabilization_enabled = false
 stabilization_speed = 1000.0
-movement_track_duration = 0.8
+movement_track_duration = 0.5
 movement_track_x = SubResource("Curve_4ikgc")
 movement_track_y = SubResource("Curve_tehj2")
-movement_track_collision_strategy = 1
 metadata/_custom_type_script = "uid://dp5gttsshciy0"
 
 [resource]
