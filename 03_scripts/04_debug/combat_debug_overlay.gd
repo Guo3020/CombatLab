@@ -138,6 +138,7 @@ func _draw() -> void:
 	_draw_player_collision()
 	_draw_hitbox()
 	_draw_executor_info()
+	_draw_player_death_cleanup_info()
 	_draw_pending_combo_info()
 	_draw_energy()
 	_draw_movement_info()
@@ -654,6 +655,100 @@ func _draw_executor_info() -> void:
 		14,
 		Color(0.3, 0.8, 1.0)
 	)
+
+
+# ==================================================
+# Player 死亡清理 Debug
+# ==================================================
+
+func _draw_player_death_cleanup_info() -> void:
+	if player == null or not bool(player.get("is_dead")):
+		return
+
+	var debug_data: Dictionary = player.call(
+		"get_death_cleanup_debug_data"
+	)
+
+	var all_clear: bool = bool(debug_data.get("all_clear", false))
+	var info_position := Vector2(20.0, size.y - 180.0)
+	var line_height: float = 18.0
+	var font := ThemeDB.fallback_font
+
+	var title_text := (
+		"PLAYER DEATH CLEANUP: PASS"
+		if all_clear
+		else "PLAYER DEATH CLEANUP: CHECK"
+	)
+	var title_color := Color(0.3, 1.0, 0.45) if all_clear else Color(1.0, 0.3, 0.25)
+
+	draw_string(
+		font,
+		info_position,
+		title_text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		15,
+		title_color
+	)
+
+	var checks: Array[Dictionary] = [
+		{
+			"label": "Action / Combo",
+			"passed": (
+				not bool(debug_data.get("action_running", true))
+				and not bool(debug_data.get("combo_running", true))
+				and not bool(debug_data.get("combo_input_buffered", true))
+				and not bool(debug_data.get("pending_combo", true))
+			)
+		},
+		{
+			"label": "HitInstances: %d active" % int(debug_data.get("active_hit_instances", -1)),
+			"passed": int(debug_data.get("active_hit_instances", -1)) == 0
+		},
+		{
+			"label": "Movement / Track",
+			"passed": not bool(debug_data.get("movement_active", true))
+		},
+		{
+			"label": "Collision Mask restored",
+			"passed": bool(debug_data.get("collision_mask_restored", false))
+		},
+		{
+			"label": "Input buffers",
+			"passed": bool(debug_data.get("input_buffers_clear", false))
+		},
+		{
+			"label": "Duck / Landing / Stabilization",
+			"passed": (
+				bool(debug_data.get("duck_and_landing_clear", false))
+				and not bool(debug_data.get("stabilization_active", true))
+			)
+		},
+		{
+			"label": "Debug timeline",
+			"passed": bool(debug_data.get("debug_timeline_clear", false))
+		},
+		{
+			"label": "Velocity = ZERO",
+			"passed": bool(debug_data.get("velocity_zero", false))
+		}
+	]
+
+	for index in range(checks.size()):
+		var check: Dictionary = checks[index]
+		var passed: bool = bool(check["passed"])
+		draw_string(
+			font,
+			info_position + Vector2(0.0, line_height * float(index + 1)),
+			("%s: %s" % [
+				check["label"],
+				"PASS" if passed else "FAIL"
+			]),
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			13,
+			Color(0.35, 1.0, 0.5) if passed else Color(1.0, 0.3, 0.25)
+		)
 
 
 # ==================================================

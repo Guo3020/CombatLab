@@ -624,6 +624,7 @@ func die() -> void:
 	if is_dead:
 		return
 
+	# 先锁定死亡状态，防止清理期间产生新的战斗输入。
 	is_dead = true
 
 	velocity = Vector2.ZERO
@@ -638,13 +639,137 @@ func die() -> void:
 	skill_input_pending = false
 
 	dash_input_direction = Vector2.ZERO
+	dash_input_updates_facing = true
 
 	_reset_special_dash_input_state()
 
+	# 清除 Combo 缓存，并结束 Combo 当前动作。
+	if combat_combo_executor != null:
+		combat_combo_executor.clear_for_death()
+
+	# 处理不属于 Combo 的独立 Action。
+	if (
+		combat_action_executor != null
+		and combat_action_executor.is_action_running()
+	):
+		combat_action_executor.cancel_action()
+
+	# Action 模块结束时会执行自身清理；这里再做一次死亡兜底，
+	# 确保 MovementTrack 碰撞 Mask、Dash 和跳跃缓存不会残留。
 	if movement_controller != null:
-		movement_controller.dash_buffered = false
-		movement_controller.dash_buffered_direction = Vector2.ZERO
-		movement_controller.is_duck_sliding = false
+		movement_controller.clear_for_death()
+
+	# 结束回调可能处理 End Velocity，因此最后再次锁定速度。
+	velocity = Vector2.ZERO
+
+
+# ==================================================
+# 死亡清理 Debug / 验证接口
+# ==================================================
+
+func get_death_cleanup_debug_data() -> Dictionary:
+	var action_running: bool = (
+		combat_action_executor != null
+		and combat_action_executor.is_action_running()
+	)
+
+	var combo_debug: Dictionary = {}
+	if combat_combo_executor != null:
+		combo_debug = combat_combo_executor.get_debug_data()
+
+	var combo_running: bool = bool(combo_debug.get("combo_running", false))
+	var combo_input_buffered: bool = bool(
+		combo_debug.get("combo_input_buffered", false)
+	)
+	var pending_combo: bool = bool(combo_debug.get("pending_combo", false))
+
+	var action_debug: Dictionary = {}
+	if combat_action_executor != null:
+		action_debug = combat_action_executor.get_debug_data()
+
+	var runtime_data: Dictionary = action_debug.get("runtime_data", {})
+	var active_hit_instances: int = int(
+		runtime_data.get("hit_instance_active_count", 0)
+	)
+
+	var movement_active: bool = (
+		movement_controller != null
+		and movement_controller.has_action_movement()
+	)
+	var collision_mask_restored: bool = (
+		movement_controller == null
+		or not movement_controller.movement_track_collision_mask_modified
+	)
+	var stabilization_active: bool = (
+		movement_controller != null
+		and (
+			movement_controller.stabilization_context_id != 0
+			or movement_controller.stabilization_locked
+			or movement_controller.movement_suppress_gravity
+		)
+	)
+
+	var input_buffers_clear: bool = (
+		not dash_input_pending
+		and not normalattack_input_pending
+		and not skill_input_pending
+		and not jump_release_pending
+		and not special_dash_hold_active
+		and (
+			movement_controller == null
+			or (
+				not movement_controller.dash_buffered
+				and movement_controller.jump_buffer_timer <= 0.0
+			)
+		)
+	)
+
+	var duck_and_landing_clear: bool = (
+		movement_controller == null
+		or (
+			not movement_controller.is_duck_sliding
+			and not movement_controller.ultra_landing_pending
+		)
+	)
+
+	var debug_timeline_clear: bool = (
+		not debug_action_active
+		and debug_action_name == "待机"
+	)
+
+	var velocity_zero: bool = velocity.is_zero_approx()
+
+	var all_clear: bool = (
+		is_dead
+		and not action_running
+		and not combo_running
+		and not combo_input_buffered
+		and not pending_combo
+		and active_hit_instances == 0
+		and not movement_active
+		and collision_mask_restored
+		and not stabilization_active
+		and input_buffers_clear
+		and duck_and_landing_clear
+		and debug_timeline_clear
+		and velocity_zero
+	)
+
+	return {
+		"all_clear": all_clear,
+		"action_running": action_running,
+		"combo_running": combo_running,
+		"combo_input_buffered": combo_input_buffered,
+		"pending_combo": pending_combo,
+		"active_hit_instances": active_hit_instances,
+		"movement_active": movement_active,
+		"collision_mask_restored": collision_mask_restored,
+		"stabilization_active": stabilization_active,
+		"input_buffers_clear": input_buffers_clear,
+		"duck_and_landing_clear": duck_and_landing_clear,
+		"debug_timeline_clear": debug_timeline_clear,
+		"velocity_zero": velocity_zero
+	}
 
 
 # ==================================================

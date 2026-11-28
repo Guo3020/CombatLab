@@ -615,6 +615,40 @@ func notify_movement_action_finished(
 
 
 # ==================================================
+# 死亡时强制清理
+# ==================================================
+
+func clear_for_death() -> void:
+	# 正常 Action 取消会通过 MovementModule 通知这里；
+	# 再次清理可覆盖 Action 尚未持有 Movement 的独立残留状态。
+	if has_action_movement():
+		_finish_active_movement(
+			CombatMovementInterface.MovementEndReason.CANCELLED
+		)
+	else:
+		_clear_active_movement()
+
+	dash_buffered = false
+	dash_buffered_direction = Vector2.ZERO
+	dash_buffered_update_facing = true
+
+	is_duck_sliding = false
+	ultra_landing_pending = false
+	dash_grounded_ultra_applied = false
+	dash_grounded_ultra_speed = 0.0
+
+	coyote_timer = 0.0
+	jump_buffer_timer = 0.0
+
+	stabilization_context_id = 0
+	stabilization_locked = false
+	movement_suppress_gravity = false
+
+	pending_jump_speed_debug = false
+	pending_jump_speed_debug_type = ""
+
+
+# ==================================================
 # Movement 自身结束
 # ==================================================
 

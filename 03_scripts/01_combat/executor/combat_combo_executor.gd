@@ -497,6 +497,25 @@ func cancel_combo() -> void:
 	_finish_combo(true)
 
 
+# 死亡时强制清除 Combo 与所有输入缓存。
+# 普通取消负责正常生命周期；这里额外覆盖未运行状态下可能残留的缓存。
+func clear_for_death() -> void:
+	cancel_combo()
+
+	_clear_pending_combo()
+
+	combo_window_timer = 0.0
+	combo_window_open = false
+
+	combo_input_buffered = false
+	combo_input_request = null
+
+	current_action_index = -1
+	current_combo_data = null
+
+	_update_debug()
+
+
 func _finish_combo(was_cancelled: bool) -> void:
 
 	is_combo_running = false
