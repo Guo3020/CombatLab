@@ -189,7 +189,8 @@ class CurveGraph extends Control:
 			var max_x := curve.get_point_position(dragging_point + 1).x - 0.001
 			point.x = clampf(point.x, min_x, max_x)
 		if old_point.distance_squared_to(point) > 0.000001:
-			curve.set_point_position(dragging_point, point)
+			curve.set_point_offset(dragging_point, point.x)
+			curve.set_point_value(dragging_point, point.y)
 			queue_redraw()
 
 	func _delete_selected_point() -> void:
