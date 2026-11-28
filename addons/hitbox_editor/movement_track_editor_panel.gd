@@ -273,6 +273,7 @@ func _ready() -> void:
 	var duration_row := HBoxContainer.new()
 	content.add_child(duration_row)
 	duration_row.add_child(_make_label("持续时间"))
+	duration_row.clip_contents = true
 	duration_row.add_theme_constant_override("separation", 4)
 	duration_spin = SpinBox.new()
 	duration_spin.min_value = 0.01
@@ -287,6 +288,7 @@ func _ready() -> void:
 	var collision_row := HBoxContainer.new()
 	content.add_child(collision_row)
 	collision_row.add_child(_make_label("碰撞策略"))
+	collision_row.clip_contents = true
 	collision_row.add_theme_constant_override("separation", 4)
 	collision_option = OptionButton.new()
 	collision_option.add_item("BLOCK", MovementModule.MovementCollisionStrategy.BLOCK)
@@ -324,8 +326,9 @@ func _ready() -> void:
 func _make_label(value: String) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.custom_minimum_size.x = 48.0
+	label.custom_minimum_size.x = 0.0
 	label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	label.clip_text = true
 	return label
 
 
@@ -333,24 +336,31 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	var section := VBoxContainer.new()
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section.custom_minimum_size.x = 0.0
+	section.clip_contents = true
 	var heading := HBoxContainer.new()
+	heading.clip_contents = true
 	section.add_child(heading)
 	var title := Label.new()
 	title.text = title_text
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.clip_text = true
+	title.custom_minimum_size.x = 0.0
 	heading.add_child(title)
 	var range_button := Button.new()
 	range_button.flat = true
 	range_button.text = "+100"
-	range_button.custom_minimum_size.x = 42.0
+	range_button.custom_minimum_size.x = 0.0
+	range_button.clip_text = true
 	heading.add_child(range_button)
 	section.add_child(graph)
 	var footer := HBoxContainer.new()
+	footer.clip_contents = true
 	section.add_child(footer)
 	var lower_range_button := Button.new()
 	lower_range_button.flat = true
 	lower_range_button.text = "-100"
-	lower_range_button.custom_minimum_size.x = 42.0
+	lower_range_button.custom_minimum_size.x = 0.0
+	lower_range_button.clip_text = true
 	range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
 	lower_range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
 	footer.add_child(lower_range_button)
@@ -360,7 +370,8 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	var end_button := Button.new()
 	end_button.flat = true
 	end_button.text = "0.20s"
-	end_button.custom_minimum_size.x = 54.0
+	end_button.custom_minimum_size.x = 0.0
+	end_button.clip_text = true
 	end_button.pressed.connect(_on_duration_axis_pressed)
 	footer.add_child(end_button)
 	duration_axis_buttons.append(end_button)
