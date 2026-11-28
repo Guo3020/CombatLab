@@ -184,6 +184,13 @@ func _ready() -> void:
 # ==================================================
 
 func _process(delta: float) -> void:
+	# Debug 测试按键只在 Debug 构建中生效。
+	if OS.is_debug_build():
+		if Input.is_action_just_pressed("debug_player_massive_damage"):
+			take_damage(maxf(max_health, 1.0) * 10.0)
+		elif Input.is_action_just_pressed("debug_player_die"):
+			die()
+
 	if is_dead:
 		move_input_direction = 0.0
 		move_input_vector = Vector2.ZERO
@@ -623,6 +630,9 @@ func take_damage(damage: float) -> void:
 func die() -> void:
 	if is_dead:
 		return
+
+	# 死亡状态统一以 0 生命值表示，包括 Debug 直接死亡。
+	current_health = 0.0
 
 	# 先锁定死亡状态，防止清理期间产生新的战斗输入。
 	is_dead = true

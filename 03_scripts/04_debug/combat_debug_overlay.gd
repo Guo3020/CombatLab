@@ -144,6 +144,7 @@ func _draw() -> void:
 	_draw_movement_info()
 	_draw_enemy_ai_info()
 	_draw_dash_charges()
+	_draw_death_test_controls()
 
 	# 显示打断标记
 	if enemy_interrupt_flash_timer > 0.0:
@@ -1486,3 +1487,23 @@ func _draw_dash_charges() -> void:
 							3.0
 						)
 
+
+
+
+# ==================================================
+# Player 死亡测试快捷键
+# ==================================================
+
+func _draw_death_test_controls() -> void:
+	if not OS.is_debug_build():
+		return
+
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(20.0, 30.0),
+		"F9：受到 10 倍最大生命值伤害    F10：直接死亡",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		14,
+		Color(0.85, 0.85, 0.85, 0.9)
+	)
