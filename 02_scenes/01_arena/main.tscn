@@ -24,6 +24,7 @@ size = Vector2(40, 3000)
 [node name="main" type="Node2D" unique_id=2059337878]
 
 [node name="player1" parent="." unique_id=870416064 instance=ExtResource("4_mjur0")]
+visibility_layer = 4
 position = Vector2(635, 501)
 dash_action_data = ExtResource("2_73ffk")
 
@@ -33,10 +34,12 @@ dash_action_data = ExtResource("2_73ffk")
 position = Vector2(930, 505)
 
 [node name="Ground" type="StaticBody2D" parent="." unique_id=527074117]
-collision_layer = 2
+collision_layer = 3
 collision_mask = 0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Ground" unique_id=960418572]
+light_mask = 0
+visibility_layer = 0
 position = Vector2(571, 560)
 scale = Vector2(4.040001, 1)
 shape = SubResource("RectangleShape2D_g1ohs")
@@ -48,6 +51,8 @@ color = Color(0.53436106, 0.53436106, 0.534361, 1)
 polygon = PackedVector2Array(0, 539, 0, 581, 1152, 580, 1152, 540)
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Ground" unique_id=1696965645]
+light_mask = 0
+visibility_layer = 0
 position = Vector2(400, 367.5)
 shape = SubResource("RectangleShape2D_r8brs")
 
@@ -58,6 +63,8 @@ color = Color(0.53436106, 0.53436106, 0.534361, 1)
 polygon = PackedVector2Array(0, 539, 0, 581, 1152, 580, 1152, 540)
 
 [node name="CollisionShape2D3" type="CollisionShape2D" parent="Ground" unique_id=1139051828]
+light_mask = 0
+visibility_layer = 0
 position = Vector2(1336, 543)
 shape = SubResource("ConvexPolygonShape2D_g1ohs")
 

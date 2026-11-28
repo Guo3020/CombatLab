@@ -295,9 +295,24 @@ func _create_movement_track_panel() -> void:
 	movement_track_panel.set_script(MOVEMENT_TRACK_PANEL_SCRIPT)
 	movement_track_panel.position = Vector2(maxf(canvas.size.x - 340.0, 12.0), 12.0)
 	movement_track_panel.size = Vector2(320.0, 430.0)
-	movement_track_panel.custom_minimum_size = Vector2(320.0, 320.0)
+	movement_track_panel.custom_minimum_size = Vector2(140.0, 320.0)
+	movement_track_panel.edit_committed.connect(_save_action_data_after_curve_edit)
 	movement_track_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	canvas.add_child(movement_track_panel)
+
+
+func _save_action_data_after_curve_edit() -> void:
+	if action_data == null:
+		return
+	var resource_path := action_data.resource_path
+	if resource_path.is_empty() or not resource_path.begins_with("res://") or not resource_path.ends_with(".tres"):
+		push_warning("MovementTrack 已修改，但 ActionData 不是独立 .tres 资源，未自动写入磁盘：" + resource_path)
+		return
+	var error := ResourceSaver.save(action_data, resource_path)
+	if error != OK:
+		push_error("MovementTrack ActionData 自动保存失败：%s（错误码 %d）" % [resource_path, error])
+	else:
+		EditorInterface.set_object_edited(action_data, false)
 
 
 func _connect_resource_changes() -> void:
