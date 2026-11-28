@@ -52,10 +52,17 @@ enum StabilizationPhase {
 
 @export_group("额外位移")
 
-@export var movement_mode: MovementMode = MovementMode.NONE:
+var _movement_mode: MovementMode = MovementMode.NONE
+
+@export var movement_mode: MovementMode:
+	get:
+		return _movement_mode
 	set(value):
-		movement_mode = value
-		notify_property_list_changed()
+		if _movement_mode == value:
+			return
+		_movement_mode = value
+		call_deferred("notify_property_list_changed")
+		emit_changed()
 
 
 func _validate_property(property: Dictionary) -> void:
