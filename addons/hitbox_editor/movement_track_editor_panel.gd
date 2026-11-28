@@ -326,7 +326,7 @@ func _ready() -> void:
 func _make_label(value: String) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.custom_minimum_size.x = 0.0
+	label.custom_minimum_size.x = 58.0
 	label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	label.clip_text = true
 	return label
@@ -349,8 +349,8 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	var range_button := Button.new()
 	range_button.flat = true
 	range_button.text = "+100"
-	range_button.custom_minimum_size.x = 0.0
-	range_button.clip_text = true
+	range_button.custom_minimum_size.x = 46.0
+	range_button.clip_text = false
 	heading.add_child(range_button)
 	section.add_child(graph)
 	var footer := HBoxContainer.new()
@@ -359,8 +359,8 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	var lower_range_button := Button.new()
 	lower_range_button.flat = true
 	lower_range_button.text = "-100"
-	lower_range_button.custom_minimum_size.x = 0.0
-	lower_range_button.clip_text = true
+	lower_range_button.custom_minimum_size.x = 46.0
+	lower_range_button.clip_text = false
 	range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
 	lower_range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
 	footer.add_child(lower_range_button)
@@ -370,8 +370,8 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	var end_button := Button.new()
 	end_button.flat = true
 	end_button.text = "0.20s"
-	end_button.custom_minimum_size.x = 0.0
-	end_button.clip_text = true
+	end_button.custom_minimum_size.x = 56.0
+	end_button.clip_text = false
 	end_button.pressed.connect(_on_duration_axis_pressed)
 	footer.add_child(end_button)
 	duration_axis_buttons.append(end_button)
