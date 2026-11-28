@@ -376,36 +376,36 @@ func _draw_movement_track_path() -> void:
 	if x_curve == null or y_curve == null:
 		return
 
-	var start_offset := Vector2(
-		x_curve.sample_baked(0.0),
-		y_curve.sample_baked(0.0)
+	# 与 MovementController 使用相同的坐标转换：
+	# X 按 Action 开始时捕获的面向镜像，Y 的正值代表向上。
+	var facing_direction := -1.0 if float(
+		request.get("movement_track_facing_direction", 1)
+	) < 0.0 else 1.0
+	var start_displacement := Vector2(
+		x_curve.sample_baked(0.0) * facing_direction,
+		-y_curve.sample_baked(0.0)
 	)
+	var current_displacement: Vector2 = controller.movement_track_displacement
+
+	# 用当前角色位置反推轨迹起点，使当前进度点始终与角色位置重合。
+	var path_origin: Vector2 = player.global_position - current_displacement
 	var points := PackedVector2Array()
 
 	for index in range(21):
 		var progress := float(index) / 20.0
 		var displacement := Vector2(
-			x_curve.sample_baked(progress),
-			y_curve.sample_baked(progress)
-		) - start_offset
+			x_curve.sample_baked(progress) * facing_direction,
+			-y_curve.sample_baked(progress)
+		) - start_displacement
 		points.append(
-			_world_to_screen(controller.movement_track_start_position + displacement)
+			_world_to_screen(path_origin + displacement)
 		)
 
 	if points.size() >= 2:
 		draw_polyline(points, Color(0.35, 0.95, 0.75, 0.9), 2.0)
 
-	var planned_position := _world_to_screen(
-		controller.movement_track_start_position
-		+ controller.movement_track_displacement
-	)
-	var actual_position := _world_to_screen(player.global_position)
-
-	draw_circle(planned_position, 4.0, Color(0.35, 1.0, 0.8))
-	draw_circle(actual_position, 5.0, Color(0.95, 0.95, 1.0))
-
-	if planned_position.distance_to(actual_position) > 2.0:
-		draw_line(planned_position, actual_position, Color(1.0, 0.75, 0.25, 0.9), 2.0)
+	var current_position := _world_to_screen(player.global_position)
+	draw_circle(current_position, 5.0, Color(0.95, 0.95, 1.0))
 
 
 # ==================================================
