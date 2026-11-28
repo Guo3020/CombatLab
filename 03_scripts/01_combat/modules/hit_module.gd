@@ -280,13 +280,12 @@ func _on_body_entered(
 
 	# 只有正常命中才扣除生命并检查打断。
 	if hit_result == DefenseController.HitResult.HIT:
-		var attack_direction := Vector2.ZERO
-		if context.actor is Node2D:
-			var horizontal_direction: float = signf(
-				body.global_position.x - context.actor.global_position.x
-			)
-			attack_direction.x = horizontal_direction
-
+		# 使用 Action Context 捕获的面向作为攻击方向，
+		# 不依赖命中瞬间双方的位置关系。
+		var attack_direction := Vector2(
+			signf(context.facing_direction),
+			0.0
+		)
 		body.take_damage(hit_instance.damage, attack_direction)
 		HitManager.process_hit(
 			context as CombatActionContext,
