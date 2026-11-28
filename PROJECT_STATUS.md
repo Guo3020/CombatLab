@@ -67,7 +67,9 @@ These bullets describe the implemented architecture; they do not imply that ever
 The separate `CombatEnergy` and `SkillSelector` nodes have been consolidated into one `SkillSystem` on the GPT branch. Local Godot validation is still pending.
 
 - `SkillSystem` owns both Energy (0–100) and Decibel (0–3000).
-- It selects the normal skill or enhanced special skill using the existing first-Action energy check.
+- Normal Skill and enhanced Special Skill can each be configured as either a single `CombatActionData` or a `CombatComboData`.
+- Single-Action skills submit `START_ACTION`; Combo skills submit `START_COMBO`. Both retain the same Skill input and resource-selection behavior.
+- The enhanced special skill is selected when its first Action's resource cost can be paid; otherwise the normal skill is selected. Configure exactly one resource type (Action or Combo) for each skill slot.
 - Energy is still consumed per Action segment through the existing Action execution route.
 - `CombatActionExecutor` asks SkillSystem to consume the resource cost recorded by `CombatActionData`.
 - The resource check is atomic when an Action has both Energy and Decibel costs.
