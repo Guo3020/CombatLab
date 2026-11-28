@@ -87,20 +87,20 @@ func start_action(
 	# HitModule 开启时，确保至少存在一个可编辑的 HitInstance。
 	action_data.ensure_hit_instance()
 
-	# 检查并消耗动作所需能量。
-	if action_data.energy_cost > 0.0:
-		var energy := actor.get_node_or_null("CombatEnergy") as CombatEnergy
+	# 统一检查并消耗 SkillSystem 管理的 Action 资源。
+	var decibel_cost := action_data.get_decibel_cost()
+	if action_data.energy_cost > 0.0 or decibel_cost > 0.0:
+		var skill_system := actor.get_node_or_null("SkillSystem") as SkillSystem
 
-		if energy == null:
-			push_warning("CombatActionExecutor：动作需要能量，但角色没有 CombatEnergy")
-			if DEBUG_ACTION_OVERRIDE:
-				print("[拒绝] 找不到 CombatEnergy")
+		if skill_system == null:
+			push_warning("CombatActionExecutor：动作需要资源，但角色没有 SkillSystem")
 			return false
 
-		if not energy.consume_energy(action_data.energy_cost):
-			print("能量不足，无法启动动作：", action_data.action_name)
-			if DEBUG_ACTION_OVERRIDE:
-				print("[拒绝] 能量不足")
+		if not skill_system.consume_action_cost(action_data):
+			if decibel_cost > 0.0:
+				print("喧响值不足，无法启动动作：", action_data.action_name)
+			else:
+				print("能量不足，无法启动动作：", action_data.action_name)
 			return false
 
 	# 新动作成功通过启动检查，取消之前的成功闪避时缓。
