@@ -230,7 +230,7 @@ Implemented on the GPT branch; Godot runtime validation is pending.
 
 - Added shared `DeathMovementController` for Player1 and EnemyBase.
 - Ground Death and Air Death are unified as `Non-Knockback Death`; no separate ground/air mode is used.
-- Lethal HitModule damage now passes the incoming horizontal attack direction to the target.
+- Lethal HitModule damage now passes the incoming horizontal attack direction from the Action Context's captured facing direction to the target.
 - With an incoming attack direction, Non-Knockback Death sets X velocity to exactly 500 toward the attack direction. With no usable source direction, it preserves the death-time X velocity.
 - Horizontal velocity gradually decelerates while gravity remains active.
 - Airborne deaths bounce once on first landing, using pre-impact vertical speed multiplied by the configured bounce ratio. Grounded deaths do not bounce.
