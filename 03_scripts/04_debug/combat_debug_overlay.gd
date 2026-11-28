@@ -671,7 +671,7 @@ func _draw_player_death_cleanup_info() -> void:
 	)
 
 	var all_clear: bool = bool(debug_data.get("all_clear", false))
-	var info_position := Vector2(20.0, size.y - 230.0)
+	var info_position := Vector2(20.0, size.y - 290.0)
 	var line_height: float = 18.0
 	var font := ThemeDB.fallback_font
 
@@ -780,6 +780,29 @@ func _draw_player_death_cleanup_info() -> void:
 		"Death Velocity: (%.1f, %.1f)" % [
 			death_velocity.x,
 			death_velocity.y
+		],
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		13,
+		Color(0.8, 0.8, 0.8)
+	)
+
+	var death_movement: Dictionary = debug_data.get("death_movement", {})
+	draw_string(
+		font,
+		info_position + Vector2(0.0, line_height * 11.0),
+		"Death Movement: %s" % str(death_movement.get("mode", "NONE")),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		13,
+		Color(0.5, 0.85, 1.0)
+	)
+	draw_string(
+		font,
+		info_position + Vector2(0.0, line_height * 12.0),
+		"Bounce: %d / 1 | Settled: %s" % [
+			int(death_movement.get("bounce_count", 0)),
+			str(bool(death_movement.get("settled", false)))
 		],
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
