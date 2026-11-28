@@ -18,7 +18,8 @@ hitboxes = Array[ExtResource("2_a1xv0")]([SubResource("Resource_a1xv0")])
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
 [sub_resource type="Curve" id="Curve_4ikgc"]
-_data = [Vector2(0, 3.508772), 0.0, 0.0, 0, 0, Vector2(0.3856383, -52.63158), 0.0, 0.0, 0, 0, Vector2(1, 77.192986), 0.0, 0.0, 0, 0]
+resource_name = "MovementTrack X Curve"
+_data = [Vector2(0, 3.508772), 0.0, 0.0, 0, 0, Vector2(0.328084, -36.842106), 0.0, 0.0, 0, 0, Vector2(1, 77.192986), 0.0, 0.0, 0, 0]
 point_count = 3
 
 [sub_resource type="Curve" id="Curve_tehj2"]
@@ -33,6 +34,7 @@ script = ExtResource("4_4ikgc")
 movement_mode = 3
 stabilization_enabled = false
 stabilization_speed = 1000.0
+movement_track_duration = 0.8
 movement_track_x = SubResource("Curve_4ikgc")
 movement_track_y = SubResource("Curve_tehj2")
 movement_track_collision_strategy = 1
