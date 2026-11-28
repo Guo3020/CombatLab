@@ -62,46 +62,42 @@ The shared Non-Knockback Death implementation has been tested locally by the use
 
 These bullets describe the implemented architecture; they do not imply that every editor interaction or runtime edge case has been independently re-tested in the latest local project.
 
-## 3. Existing Skill baseline
+## 3. SkillSystem implementation
 
-The current implementation still has separate nodes/scripts:
+The separate `CombatEnergy` and `SkillSelector` nodes have been consolidated into one `SkillSystem` on the GPT branch. Local Godot validation is still pending.
 
-- `CombatEnergy`: manages the existing 0–100 energy resource.
-- `SkillSelector`: chooses the normal skill or enhanced special skill, then submits a combo request.
-- `CombatActionData.energy_cost`: stores the energy cost for an individual Action.
+- `SkillSystem` owns both Energy (0–100) and Decibel (0–3000).
+- It selects the normal skill or enhanced special skill using the existing first-Action energy check.
+- Energy is still consumed per Action segment through the existing Action execution route.
+- `CombatActionExecutor` asks SkillSystem to consume the resource cost recorded by `CombatActionData`.
+- The resource check is atomic when an Action has both Energy and Decibel costs.
+- `CombatActionData.energy_cost` remains Inspector-editable.
+- `CombatActionData.decibel_cost` is hidden from the Inspector and defaults to 1000 for Actions whose `action_type` is `ultimate`; other Action types do not consume Decibel.
+- SkillSystem exposes `add_decibel()`, but Decibel gain rules have not yet been designed.
+- The Ultimate request submits a normal `START_ACTION` request using a `CombatActionData`. SkillSystem has an `ultimate_action_data` slot, which is not assigned to a concrete Ultimate Action yet.
+- An unbound `ultimate` Input Map action has been added. The user assigns its key in Project Settings; there is no runtime key-creation prompt.
+- CombatDebugOverlay now displays both Energy and Decibel.
 
-Previously confirmed skill behavior to preserve during the refactor:
-
-- The same Skill input selects the normal skill when energy is insufficient and the enhanced special skill when sufficient.
-- Energy costs are paid per Action segment, not as one up-front combo payment.
-- If energy becomes insufficient partway through an enhanced special combo, the combo may stop at that point.
-- Already-consumed energy is not refunded, and the system does not switch to the normal skill mid-combo.
-
-The new SkillSystem should consolidate resource management and skill selection while keeping Action execution in the existing Executor / ComboExecutor architecture.
+Preserved behavior:
+- The same Skill input selects normal skill when the enhanced special skill's first Action cost cannot be paid, and selects enhanced special skill when it can.
+- Energy costs remain per Action segment.
+- If Energy becomes insufficient partway through an enhanced special combo, that combo stops at the unaffordable Action. Already-consumed Energy is not refunded, and the system does not switch to normal skill mid-combo.
 
 ## 4. Next tasks
 
-### 4.1 Unified SkillSystem
+### 4.1 SkillSystem / Ultimate validation
 
-- [ ] Replace the separate `CombatEnergy` + `SkillSelector` ownership model with one SkillSystem.
-- [ ] Preserve the existing 0–100 energy behavior and normal / enhanced-special selection rules.
-- [ ] Preserve per-Action energy consumption and the confirmed insufficient-energy combo behavior.
-- [ ] Keep skill input configurable through Godot's Input Map; do not hardcode a physical key.
+- [ ] Open the project in Godot and confirm there are no parse errors, missing script references, or invalid resources after replacing the two old nodes with SkillSystem.
+- [ ] Verify normal skill and enhanced special selection, including insufficient Energy partway through a combo.
+- [ ] Assign an Ultimate `CombatActionData` to SkillSystem's `ultimate_action_data` slot.
+- [ ] Set that Action's `action_type` to `ultimate`; its hidden Decibel cost defaults to 1000 and is not Inspector-editable.
+- [ ] Bind the `ultimate` Input Map action to a key in Project Settings.
+- [ ] Test rejection below 1000 Decibel, successful activation at 1000 or more, and exact 1000 Decibel deduction.
+- [ ] Confirm the Decibel debug bar updates when `add_decibel()` is called.
 
-### 4.2 Decibel / Ultimate system
+Decibel gain rules and any additional Ultimate availability conditions remain undecided. Do not invent them during implementation.
 
-Planned to reuse the SkillSystem:
-
-- [ ] Decibel resource range: 0–3000.
-- [ ] Ultimate is a normal `CombatActionData` Action and uses the unified Action request path.
-- [ ] Default Ultimate cost: 1000 Decibel.
-- [ ] The default cost is internal behavior and must not appear as an editable Inspector property.
-- [ ] The Ultimate input must be a normal configurable Godot Input Map action. The user will assign the key, just as with ordinary controls.
-- [ ] Do not show runtime prompts saying that an input action was created or asking the user to create one.
-
-Still undecided: how Decibel is gained, whether there are any special gain rules, and any additional Ultimate-specific availability conditions. Do not invent these rules during implementation.
-
-### 4.3 Deferred combat feature
+### 4.2 Deferred combat feature
 
 - [ ] Knockback Death, after `KnockbackModule` is implemented. It should use the future KnockbackModule vector, preserve vector direction when enforcing a minimum whole-vector speed, and support one landing bounce.
 
