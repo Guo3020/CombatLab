@@ -1,13 +1,8 @@
-
 extends CombatActionModule
 class_name HitModule
 
 
 var hit_instance_runtime: Array[Dictionary] = []
-
-
-func _init() -> void:
-	module_name = "Hit"
 
 
 func get_module_id() -> StringName:
@@ -27,18 +22,7 @@ func on_module_start(context: RefCounted) -> void:
 	if context.actor == null:
 		return
 
-	var template_area := context.actor.get_node_or_null(
-		"AttackArea"
-	) as Area2D
-
-	var collision_mask: int = 1
-
-	if template_area != null:
-		collision_mask = template_area.collision_mask
-	else:
-		push_warning(
-			"HitModule：找不到旧 AttackArea，暂时使用默认 Collision Mask 1"
-		)
+	var facing_direction: float = -1.0 if context.facing_direction < 0 else 1.0
 
 	for index in range(context.action_data.hit_instances.size()):
 		var hit_instance: HitInstanceData = (
@@ -51,18 +35,21 @@ func on_module_start(context: RefCounted) -> void:
 		var runtime_area := Area2D.new()
 		runtime_area.name = "HitInstance_%d" % index
 		runtime_area.collision_layer = 0
-		runtime_area.collision_mask = collision_mask
+		runtime_area.collision_mask = context.action_data.collision_mask
 		runtime_area.monitoring = false
 		runtime_area.monitorable = false
 
 		context.actor.add_child(runtime_area)
 
-		# 每个 HitboxData 创建一个 CollisionShape2D。
+		# 一个 HitInstance 内的多个 Hitbox 同时启停，并共享命中记录。
 		for hitbox_data in hit_instance.hitboxes:
 			if hitbox_data == null:
 				continue
 
-			var collision_shape := _create_collision_shape(hitbox_data)
+			var collision_shape := _create_collision_shape(
+				hitbox_data,
+				facing_direction
+			)
 
 			if collision_shape == null:
 				continue
@@ -70,6 +57,7 @@ func on_module_start(context: RefCounted) -> void:
 			runtime_area.add_child(collision_shape)
 
 		var hit_targets: Array[Node2D] = []
+		var runtime_state: Dictionary = {"enabled": false}
 
 		var callback := Callable(
 			self,
@@ -77,7 +65,9 @@ func on_module_start(context: RefCounted) -> void:
 		).bind(
 			context,
 			hit_instance,
-			hit_targets
+			hit_targets,
+			runtime_area,
+			runtime_state
 		)
 
 		runtime_area.body_entered.connect(callback)
@@ -87,16 +77,12 @@ func on_module_start(context: RefCounted) -> void:
 			"area": runtime_area,
 			"hit_targets": hit_targets,
 			"callback": callback,
+			"state": runtime_state,
 			"enabled": false
 		})
 
-	context.runtime_data["hit_module_enabled"] = true
-	context.runtime_data["hit_instance_count"] = hit_instance_runtime.size()
+	_write_debug_data(context)
 
-	print(
-		"HitModule：启动，HitInstance 数量：",
-		hit_instance_runtime.size()
-	)
 
 
 # ==================================================
@@ -104,7 +90,8 @@ func on_module_start(context: RefCounted) -> void:
 # ==================================================
 
 func _create_collision_shape(
-	hitbox_data: HitboxData
+	hitbox_data: HitboxData,
+	facing_direction: float
 ) -> CollisionShape2D:
 
 	var collision_shape := CollisionShape2D.new()
@@ -134,8 +121,15 @@ func _create_collision_shape(
 			collision_shape.queue_free()
 			return null
 
-	collision_shape.position = hitbox_data.offset
-	collision_shape.rotation_degrees = hitbox_data.rotation_degrees
+	# Hitbox 数据始终以角色朝右时为基准。
+	# 朝左时镜像 X Offset，并反转旋转角度。
+	collision_shape.position = Vector2(
+		hitbox_data.offset.x * facing_direction,
+		hitbox_data.offset.y
+	)
+	collision_shape.rotation_degrees = (
+		hitbox_data.rotation_degrees * facing_direction
+	)
 
 	return collision_shape
 
@@ -144,12 +138,18 @@ func _create_collision_shape(
 # 模块更新
 # ==================================================
 
-func on_module_update(context: RefCounted, _delta: float) -> void:
+func on_module_update(context: RefCounted, delta: float) -> void:
 	if context.current_phase != &"active":
 		_disable_all_hit_instances()
+		_write_debug_data(context)
 		return
 
-	var active_time: float = context.phase_elapsed
+	# Executor 在本次模块回调结束后才推进 phase_elapsed。
+	# 因此这里判断本次时间步 [step_start, step_end] 是否与
+	# HitInstance 的 [start_time, end_time) 有交集。
+	# 这样跨过时间边界的这一帧就会立即切换，不必等下一次更新。
+	var step_start: float = context.phase_elapsed
+	var step_end: float = step_start + maxf(delta, 0.0)
 
 	for runtime in hit_instance_runtime:
 		var hit_instance: HitInstanceData = runtime["data"]
@@ -159,17 +159,19 @@ func on_module_update(context: RefCounted, _delta: float) -> void:
 			continue
 
 		var should_enable: bool = (
-			active_time >= hit_instance.start_time
-			and active_time < hit_instance.end_time
+			step_end > hit_instance.start_time
+			and step_start < hit_instance.end_time
+			and hit_instance.end_time > hit_instance.start_time
 		)
 
 		if bool(runtime["enabled"]) == should_enable:
 			continue
 
 		runtime["enabled"] = should_enable
+		runtime["state"]["enabled"] = should_enable
 		area.set_deferred("monitoring", should_enable)
 
-	context.runtime_data["hit_module_enabled"] = true
+	_write_debug_data(context)
 
 
 func _disable_all_hit_instances() -> void:
@@ -180,6 +182,38 @@ func _disable_all_hit_instances() -> void:
 			area.set_deferred("monitoring", false)
 
 		runtime["enabled"] = false
+		runtime["state"]["enabled"] = false
+
+
+func _write_debug_data(context: RefCounted) -> void:
+	if context == null:
+		return
+
+	var debug_instances: Array[Dictionary] = []
+	var active_count: int = 0
+
+	for index in range(hit_instance_runtime.size()):
+		var runtime: Dictionary = hit_instance_runtime[index]
+		var hit_instance: HitInstanceData = runtime["data"]
+		var is_enabled: bool = bool(runtime["enabled"])
+
+		if is_enabled:
+			active_count += 1
+
+		debug_instances.append({
+			"index": index,
+			"start_time": hit_instance.start_time,
+			"end_time": hit_instance.end_time,
+			"enabled": is_enabled,
+			"hit_count": runtime["hit_targets"].size(),
+			"area": runtime["area"]
+		})
+
+	context.runtime_data["hit_instance_runtime"] = debug_instances
+	context.runtime_data["hit_instance_count"] = debug_instances.size()
+	context.runtime_data["hit_instance_active_count"] = active_count
+	context.runtime_data["hit_instance_collision_mask"] = context.action_data.collision_mask
+	context.runtime_data["hit_module_enabled"] = true
 
 
 # ==================================================
@@ -190,7 +224,9 @@ func _on_body_entered(
 	body: Node2D,
 	context: RefCounted,
 	hit_instance: HitInstanceData,
-	hit_targets: Array
+	hit_targets: Array[Node2D],
+	runtime_area: Area2D,
+	runtime_state: Dictionary
 ) -> void:
 
 	if context == null or not context.is_running:
@@ -199,8 +235,15 @@ func _on_body_entered(
 	if context.current_phase != &"active":
 		return
 
+	if not runtime_state.get("enabled", false):
+		return
+
+	if not is_instance_valid(runtime_area) or not runtime_area.monitoring:
+		return
+
 	if body == null or not is_instance_valid(body):
 		return
+
 
 	if body == context.actor:
 		return
@@ -225,49 +268,23 @@ func _on_body_entered(
 
 	var hit_result: int = target_defense.get_hit_result()
 
-	# 无敌状态不记录命中。
+	# 无敌状态不记录命中，也不触发普通 Hitstop。
 	if hit_result == DefenseController.HitResult.INVINCIBLE:
 		if target_defense.should_trigger_time_slow_on_success():
 			CombatTimeManager.trigger_successful_dodge_time_slow()
-			print("HitModule：成功闪避，触发全局时缓")
-		else:
-			print("HitModule：目标处于无敌状态，攻击无效")
-
 		return
 
 	# 正常命中和免伤都记录目标。
 	hit_targets.append(body)
 	context.target = body
 
-	# 正常命中。
+	# 只有正常命中才扣除生命并检查打断。
 	if hit_result == DefenseController.HitResult.HIT:
 		body.take_damage(hit_instance.damage)
-
 		HitManager.process_hit(
 			context as CombatActionContext,
 			body
 		)
-
-		if (
-			context.actor != null
-			and context.actor.has_signal("debug_damage_number")
-		):
-			context.actor.emit_signal(
-				"debug_damage_number",
-				body.global_position,
-				hit_instance.damage
-			)
-
-		print(
-			"HitModule：正常命中 ",
-			body.name,
-			" | 伤害：",
-			hit_instance.damage
-		)
-
-	# 免伤。
-	elif hit_result == DefenseController.HitResult.IMMUNE:
-		print("HitModule：目标处于免伤状态，未造成伤害")
 
 	# 正常命中和免伤都会触发本次 HitInstance 的 Hitstop。
 	_apply_hitstop(context, hit_instance)
@@ -328,6 +345,9 @@ func on_module_end(context: RefCounted) -> void:
 	hit_instance_runtime.clear()
 
 	if context != null:
+		context.runtime_data.erase("hit_instance_runtime")
+		context.runtime_data.erase("hit_instance_count")
+		context.runtime_data.erase("hit_instance_active_count")
+		context.runtime_data.erase("hit_instance_collision_mask")
 		context.runtime_data["hit_module_enabled"] = false
 
-	print("HitModule：模块结束")

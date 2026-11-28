@@ -12,35 +12,31 @@ trigger_time_slow_on_success = true
 start_phase = 0
 metadata/_custom_type_script = "uid://b6rcn7gpfb78m"
 
+[sub_resource type="Curve" id="Curve_pqhag"]
+resource_name = "MovementTrack Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 8
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_14x13"]
+resource_name = "MovementTrack Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 8
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
 [sub_resource type="Resource" id="Resource_c32de"]
 script = ExtResource("2_14x13")
 movement_mode = 1
 stabilization_enabled = false
-stabilization_activation_mode = 0
-stabilization_speed = 4000.0
-stabilization_start_phase = 0
-stabilization_end_phase = 2
-stabilization_duration_start_phase = 1
-stabilization_duration = 0.2
 dash_speed = 800.0
 dash_duration = 0.2
-dash_up_end_y_multiplier = 0.75
-dash_diagonal_up_end_y_multiplier = 0.75
-dash_duck_speed_multiplier = 1.2
-end_velocity_enabled = true
-exclude_diagonal_down_end = true
 dash_time_freeze_enabled = true
 dash_time_freeze_duration = 0.08
-end_velocity_mode = 0
 end_speed = 680.0
-override_phase_mode = 0
-override_duration = 0.15
-override_speed = 240.0
-override_direction_source = 0
-override_custom_direction = Vector2(1, 0)
-override_suppress_gravity = false
-module_enabled = true
-module_name = "新模块"
+movement_track_x = SubResource("Curve_pqhag")
+movement_track_y = SubResource("Curve_14x13")
 metadata/_custom_type_script = "uid://dp5gttsshciy0"
 
 [resource]

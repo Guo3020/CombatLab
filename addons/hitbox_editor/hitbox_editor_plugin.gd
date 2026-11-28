@@ -2,9 +2,15 @@
 extends EditorPlugin
 
 const PANEL_SCRIPT = preload("res://addons/hitbox_editor/hitbox_editor_panel.gd")
+const CURVE_INSPECTOR_PLUGIN_SCRIPT = preload("res://addons/hitbox_editor/movement_track_curve_inspector_plugin.gd")
+
+var curve_inspector_plugin: EditorInspectorPlugin
 var main_panel: Control
 
 func _enter_tree() -> void:
+	curve_inspector_plugin = CURVE_INSPECTOR_PLUGIN_SCRIPT.new()
+	add_inspector_plugin(curve_inspector_plugin)
+
 	main_panel = Control.new()
 	main_panel.set_script(PANEL_SCRIPT)
 	main_panel.name = "HitEditor"
@@ -16,6 +22,8 @@ func _enter_tree() -> void:
 	main_panel.hide()
 
 func _exit_tree() -> void:
+	if is_instance_valid(curve_inspector_plugin):
+		remove_inspector_plugin(curve_inspector_plugin)
 	if is_instance_valid(main_panel):
 		main_panel.queue_free()
 

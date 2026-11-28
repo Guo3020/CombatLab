@@ -3,8 +3,8 @@
 [ext_resource type="Script" uid="uid://bx3y8p324q4xu" path="res://03_scripts/01_combat/data/hit_instance_data.gd" id="1_fs84i"]
 [ext_resource type="Script" uid="uid://bj3diw4xg6hf0" path="res://03_scripts/01_combat/modules/combat_action_module.gd" id="1_hi0tf"]
 [ext_resource type="Script" uid="uid://dsiqusg72sqha" path="res://03_scripts/01_combat/data/hitbox_data.gd" id="2_fs84i"]
-[ext_resource type="Script" uid="uid://dgjymukq37tib" path="res://03_scripts/01_combat/modules/hit_module.gd" id="2_nyabd"]
 [ext_resource type="Script" uid="uid://bvyxsitu1yh05" path="res://03_scripts/01_combat/data/combat_action_data.gd" id="3_g6vsu"]
+[ext_resource type="Script" uid="uid://dp5gttsshciy0" path="res://03_scripts/01_combat/modules/movement_module.gd" id="4_fs84i"]
 
 [sub_resource type="Resource" id="Resource_tehj2"]
 script = ExtResource("2_fs84i")
@@ -16,10 +16,24 @@ end_time = 0.5
 hitboxes = Array[ExtResource("2_fs84i")]([SubResource("Resource_tehj2")])
 metadata/_custom_type_script = "uid://bx3y8p324q4xu"
 
-[sub_resource type="Resource" id="Resource_yhuu6"]
-script = ExtResource("2_nyabd")
-module_name = "第二段攻击判定"
-metadata/_custom_type_script = "uid://dgjymukq37tib"
+[sub_resource type="Curve" id="Curve_7wkcq"]
+resource_name = "MovementTrack Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 8
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Curve" id="Curve_xg6vm"]
+resource_name = "MovementTrack Curve"
+_limits = [-1000.0, 1000.0, 0.0, 1.0]
+bake_resolution = 8
+_data = [Vector2(0, 0), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Resource" id="Resource_nddux"]
+script = ExtResource("4_fs84i")
+movement_track_x = SubResource("Curve_7wkcq")
+movement_track_y = SubResource("Curve_xg6vm")
 
 [resource]
 script = ExtResource("3_g6vsu")
@@ -29,6 +43,7 @@ startup = 0.2
 active = 0.2
 recovery = 0.2
 input_window = 1.0
+hit_module_enabled = true
 hit_instances = Array[ExtResource("1_fs84i")]([SubResource("Resource_fs84i")])
-modules = Array[ExtResource("1_hi0tf")]([SubResource("Resource_yhuu6")])
+modules = Array[ExtResource("1_hi0tf")]([SubResource("Resource_nddux")])
 metadata/_custom_type_script = "uid://bvyxsitu1yh05"

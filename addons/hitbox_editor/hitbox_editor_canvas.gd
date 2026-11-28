@@ -2,6 +2,7 @@
 extends Control
 
 signal hitbox_selected(hitbox: HitboxData)
+signal hitbox_context_requested(hitbox: HitboxData)
 
 const BASE_SCALE := 0.75
 const MIN_SCALE := 0.15
@@ -24,10 +25,14 @@ enum DragMode {
 var action_data: CombatActionData
 var selected_hitbox: HitboxData
 var undo_redo: EditorUndoRedoManager
+var hidden_instances: Dictionary = {}
+var hidden_hitboxes: Dictionary = {}
 
 var view_scale := BASE_SCALE
 var view_pan := Vector2.ZERO
 var actor_origin := Vector2.ZERO
+var preview_time: float = 0.0
+var preview_actor_offset: Vector2 = Vector2.ZERO
 
 var drag_mode := DragMode.NONE
 var drag_pending := false
@@ -60,12 +65,92 @@ func set_selection(_instance: HitInstanceData, hitbox: HitboxData) -> void:
 	selected_hitbox = hitbox
 	queue_redraw()
 
+func set_hidden_resources(instances: Dictionary, hitboxes: Dictionary) -> void:
+	hidden_instances = instances.duplicate()
+	hidden_hitboxes = hitboxes.duplicate()
+	if selected_hitbox != null and not _is_hitbox_visible(selected_hitbox):
+		selected_hitbox = null
+	queue_redraw()
+
+func _is_hitbox_visible(hitbox: HitboxData) -> bool:
+	if hidden_hitboxes.has(hitbox.get_instance_id()):
+		return false
+	for instance in action_data.hit_instances:
+		if instance != null and instance.hitboxes.has(hitbox):
+			return not hidden_instances.has(instance.get_instance_id())
+	return true
+
 func refresh_view() -> void:
 	queue_redraw()
 
+
+func set_preview_time(value: float) -> void:
+	preview_time = maxf(value, 0.0)
+	preview_actor_offset = _get_preview_actor_offset()
+	queue_redraw()
+
+
+func _get_movement_track_module() -> MovementModule:
+	if action_data == null:
+		return null
+
+	for module in action_data.modules:
+		if module is MovementModule:
+			var movement := module as MovementModule
+			if movement.movement_mode == MovementModule.MovementMode.MOVEMENT_TRACK:
+				return movement
+
+	return null
+
+
+func _get_preview_facing_direction() -> float:
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null:
+		return 1.0
+
+	var player: Node = root
+	if not root.is_in_group("player"):
+		for candidate in root.find_children("*", "CharacterBody2D", true, false):
+			if candidate.is_in_group("player"):
+				player = candidate
+				break
+
+	var facing_value: Variant = player.get("facing_direction")
+	if typeof(facing_value) == TYPE_FLOAT or typeof(facing_value) == TYPE_INT:
+		if not is_zero_approx(float(facing_value)):
+			return signf(float(facing_value))
+	return 1.0
+
+
+func _get_preview_actor_offset() -> Vector2:
+	var movement := _get_movement_track_module()
+	if movement == null:
+		return Vector2.ZERO
+
+	if movement.movement_track_x == null or movement.movement_track_y == null:
+		return Vector2.ZERO
+
+	var duration := maxf(movement.movement_track_duration, 0.01)
+	var progress := clampf(preview_time / duration, 0.0, 1.0)
+	# Match the facing direction of the Player in the edited scene.
+	# Runtime X uses the Action-start facing snapshot; Y is authored up-positive.
+	var facing_direction := _get_preview_facing_direction()
+	var start_offset := Vector2(
+		movement.movement_track_x.sample_baked(0.0) * facing_direction,
+		-movement.movement_track_y.sample_baked(0.0)
+	)
+	var current_offset := Vector2(
+		movement.movement_track_x.sample_baked(progress) * facing_direction,
+		-movement.movement_track_y.sample_baked(progress)
+	)
+	return current_offset - start_offset
+
+
 func _draw() -> void:
 	actor_origin = size * 0.5 + Vector2(-80, 0) + view_pan
+	preview_actor_offset = _get_preview_actor_offset()
 	_draw_grid()
+	_draw_movement_track_path()
 	_draw_actor()
 	_draw_origin()
 
@@ -73,12 +158,16 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, Vector2(20, 32), "请在文件系统中选择 CombatActionData 资源。", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.LIGHT_GRAY)
 		return
 
-	for instance in action_data.hit_instances:
-		if instance == null:
+	for instance_index in range(action_data.hit_instances.size()):
+		var instance: HitInstanceData = action_data.hit_instances[instance_index]
+		if instance == null or hidden_instances.has(instance.get_instance_id()):
 			continue
-		for hitbox in instance.hitboxes:
-			if hitbox != null:
-				_draw_hitbox(hitbox, hitbox == selected_hitbox)
+		for hitbox_index in range(instance.hitboxes.size()):
+			var hitbox: HitboxData = instance.hitboxes[hitbox_index]
+			if hitbox == null or hidden_hitboxes.has(hitbox.get_instance_id()):
+				continue
+			var hitbox_color := _get_hitbox_color(instance_index, hitbox_index)
+			_draw_hitbox(hitbox, hitbox == selected_hitbox, hitbox_color)
 
 	_draw_view_hint()
 
@@ -116,7 +205,7 @@ func _draw_actor() -> void:
 	if body.shape == null:
 		return
 
-	var center := actor_origin + body.position * view_scale
+	var center := actor_origin + (preview_actor_offset + body.position) * view_scale
 	var shape := body.shape
 	if shape is RectangleShape2D:
 		var rectangle := shape as RectangleShape2D
@@ -131,6 +220,37 @@ func _draw_actor() -> void:
 
 	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(-25, 58) * view_scale, "Player1", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.65, 0.76, 0.86))
 
+func _draw_movement_track_path() -> void:
+	var movement := _get_movement_track_module()
+	if movement == null:
+		return
+
+	if movement.movement_track_x == null or movement.movement_track_y == null:
+		return
+
+	var points := PackedVector2Array()
+	var facing_direction := _get_preview_facing_direction()
+	var start_offset := Vector2(
+		movement.movement_track_x.sample_baked(0.0) * facing_direction,
+		-movement.movement_track_y.sample_baked(0.0)
+	)
+
+	for index in range(21):
+		var progress := float(index) / 20.0
+		var displacement := Vector2(
+			movement.movement_track_x.sample_baked(progress) * facing_direction,
+			-movement.movement_track_y.sample_baked(progress)
+		) - start_offset
+		points.append(actor_origin + displacement * view_scale)
+
+	if points.size() >= 2:
+		draw_polyline(points, Color(0.28, 0.9, 0.7, 0.8), 2.0)
+
+	var preview_position := actor_origin + preview_actor_offset * view_scale
+	draw_circle(preview_position, 4.0, Color(0.35, 1.0, 0.8))
+	draw_string(ThemeDB.fallback_font, preview_position + Vector2(8, -8), "%dF" % CombatTimebase.seconds_to_frames(preview_time), HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.55, 1.0, 0.82))
+
+
 func _draw_origin() -> void:
 	var c := Color(1, 0.82, 0.25, 0.95)
 	var arm := 18.0 * view_scale
@@ -139,12 +259,17 @@ func _draw_origin() -> void:
 	draw_circle(actor_origin, 3, c)
 	draw_string(ThemeDB.fallback_font, actor_origin + Vector2(10, -10), "角色原点", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, c)
 
-func _draw_hitbox(hitbox: HitboxData, selected: bool) -> void:
-	var center := actor_origin + hitbox.offset * view_scale
+func _get_hitbox_color(instance_index: int, hitbox_index: int) -> Color:
+	var hue := fposmod(0.02 + float(instance_index) * 0.19 + float(hitbox_index) * 0.035, 1.0)
+	var value := 0.96 - float(hitbox_index % 3) * 0.07
+	return Color.from_hsv(hue, 0.72, value)
+
+func _draw_hitbox(hitbox: HitboxData, selected: bool, base_color: Color) -> void:
+	var center := actor_origin + (preview_actor_offset + hitbox.offset) * view_scale
 	draw_set_transform(center, deg_to_rad(hitbox.rotation_degrees), Vector2.ONE * view_scale)
 
-	var fill := Color(1, 0.2, 0.16, 0.22 if selected else 0.10)
-	var line := Color(1, 0.35, 0.27, 1.0 if selected else 0.55)
+	var fill := Color(base_color.r, base_color.g, base_color.b, 0.24 if selected else 0.11)
+	var line := Color(base_color.r, base_color.g, base_color.b, 1.0 if selected else 0.72)
 
 	match hitbox.shape_type:
 		HitboxData.ShapeType.RECTANGLE:
@@ -206,6 +331,11 @@ func _gui_input(event: InputEvent) -> void:
 				if drag_mode == DragMode.PAN:
 					drag_mode = DragMode.NONE
 			accept_event()
+		elif button.button_index == MOUSE_BUTTON_RIGHT and button.pressed and action_data != null:
+			var hitbox := _pick(button.position)
+			if hitbox != null:
+				hitbox_context_requested.emit(hitbox)
+				accept_event()
 		elif button.button_index == MOUSE_BUTTON_LEFT and button.pressed and action_data != null:
 			_begin_left_drag(button.position)
 			accept_event()
@@ -304,7 +434,7 @@ func _to_hitbox_local(mouse: Vector2, hitbox: HitboxData) -> Vector2:
 	return _to_hitbox_local_at(mouse, hitbox.offset, hitbox.rotation_degrees)
 
 func _to_hitbox_local_at(mouse: Vector2, offset: Vector2, rotation_degrees: float) -> Vector2:
-	var center := actor_origin + offset * view_scale
+	var center := actor_origin + (preview_actor_offset + offset) * view_scale
 	return ((mouse - center) / view_scale).rotated(-deg_to_rad(rotation_degrees))
 
 func _pick_handle(mouse: Vector2) -> DragMode:
@@ -332,10 +462,11 @@ func _pick_handle(mouse: Vector2) -> DragMode:
 func _pick(mouse: Vector2) -> HitboxData:
 	var candidates: Array[HitboxData] = []
 	for instance in action_data.hit_instances:
-		if instance != null:
-			for hitbox in instance.hitboxes:
-				if hitbox != null:
-					candidates.append(hitbox)
+		if instance == null or hidden_instances.has(instance.get_instance_id()):
+			continue
+		for hitbox in instance.hitboxes:
+			if hitbox != null and not hidden_hitboxes.has(hitbox.get_instance_id()):
+				candidates.append(hitbox)
 
 	for i in range(candidates.size() - 1, -1, -1):
 		var hitbox := candidates[i]

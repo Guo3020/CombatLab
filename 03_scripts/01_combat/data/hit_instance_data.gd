@@ -3,7 +3,7 @@ extends Resource
 class_name HitInstanceData
 
 
-const FRAME_DURATION: float = 1.0 / 60.0
+const FRAME_DURATION: float = CombatTimebase.FRAME_DURATION
 
 
 func _init() -> void:
@@ -14,10 +14,10 @@ func _init() -> void:
 
 
 # ==================================================
-# 命中时间
+# 命中配置
 # ==================================================
 
-@export_group("命中时间")
+@export_group("命中配置")
 
 # 时间均相对于 Action 的 Active 阶段起点。
 @export_range(0.0, 5.0, 0.01)
@@ -26,12 +26,6 @@ var start_time: float = 0.0
 @export_range(0.0, 5.0, 0.01)
 var end_time: float = 0.1
 
-
-# ==================================================
-# 命中效果
-# ==================================================
-
-@export_group("命中效果")
 
 @export_range(0.0, 10000.0, 0.1)
 var damage: float = 10.0
@@ -43,7 +37,7 @@ var damage: float = 10.0
 
 # 同一个 HitInstance 的所有 Hitbox 同时开启和关闭，
 # 并共享同一份目标命中记录。
-@export_group("攻击判定")
+
 @export var hitboxes: Array[HitboxData] = []
 
 
@@ -55,7 +49,7 @@ var damage: float = 10.0
 
 @export var hitstop_enabled: bool = true
 
-# 保留旧 HitstopModule 对攻击者和目标分别启用/关闭的能力。
+# 攻击者和命中目标可以分别启用或关闭局部冻结。
 @export var attacker_time_freeze_enabled: bool = true
 
 @export_range(0.0, 1.0, 0.001)

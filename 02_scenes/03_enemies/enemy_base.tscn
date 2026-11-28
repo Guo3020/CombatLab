@@ -10,20 +10,14 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_g1ohs"]
 size = Vector2(80, 126)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_r8brs"]
-size = Vector2(60, 40)
-
 [node name="EnemyBase" type="CharacterBody2D" unique_id=1045941600]
+collision_layer = 8
+collision_mask = 3
 script = ExtResource("1_d11cm")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2052551920]
 scale = Vector2(0.99999994, 0.99999994)
 shape = SubResource("RectangleShape2D_g1ohs")
-
-[node name="AttackArea" type="Area2D" parent="." unique_id=887800837]
-
-[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackArea" unique_id=1394492945]
-shape = SubResource("RectangleShape2D_r8brs")
 
 [node name="Polygon2D" type="Polygon2D" parent="." unique_id=915970745]
 color = Color(0.81567484, 0.31843412, 0.24934879, 1)

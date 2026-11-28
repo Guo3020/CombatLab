@@ -3,6 +3,9 @@ extends CharacterBody2D
 class_name EnemyBase
 
 
+signal debug_damage_number(world_position: Vector2, amount: float)
+
+
 @export_group("生命值")
 @export var max_health: float = 100.0
 
@@ -30,6 +33,12 @@ var current_health: float = 0.0
 var is_dead: bool = false
 
 @onready var movement_controller: EnemyMovementController = $MovementController
+
+# MovementModule 使用的统一请求入口；实际控制器仍由 EnemyMovementController 承担。
+var movement_request_handler: Object:
+	get:
+		return movement_controller
+
 @onready var combat_action_executor: CombatActionExecutor = $CombatActionExecutor
 @onready var combat_combo_executor: CombatComboExecutor = $CombatComboExecutor
 @onready var defense_controller: DefenseController = $DefenseController
@@ -112,9 +121,7 @@ func take_damage(damage: float) -> void:
 		return
 
 	current_health = maxf(current_health - damage, 0.0)
-
-	print(name, "受到伤害：", damage)
-	print("剩余生命值：", current_health)
+	debug_damage_number.emit(global_position, damage)
 
 	if current_health <= 0.0:
 		die()
@@ -139,7 +146,6 @@ func die() -> void:
 	if combat_action_executor.is_action_running():
 		combat_action_executor.cancel_action()
 
-	print(name, "被击败！")
 
 
 # ==============================
