@@ -15,8 +15,15 @@ const MAX_DECIBEL: float = 3000.0
 
 
 @export_group("技能配置")
+@export_subgroup("普通技能")
+@export var normal_skill_action: CombatActionData
 @export var normal_skill: CombatComboData
+
+@export_subgroup("强化特殊技")
+@export var special_skill_action: CombatActionData
 @export var special_skill: CombatComboData
+
+@export_subgroup("终结技")
 @export var ultimate_action_data: CombatActionData
 
 
@@ -53,36 +60,105 @@ func _ready() -> void:
 		push_error("SkillSystem：没有找到 CombatComboExecutor")
 		return
 
+	_validate_skill_configuration()
 	_emit_resources_changed()
 
 
 # ==================================================
-# 技能请求
+# 技能配置与请求
 # ==================================================
+
+func _get_skill_first_action(
+	action_data: CombatActionData,
+	combo_data: CombatComboData,
+	skill_name: String
+) -> CombatActionData:
+	# 每种技能只能配置单个 Action 或 Combo，不能同时配置两者。
+	if action_data != null and combo_data != null:
+		push_warning(
+			"SkillSystem：%s 同时配置了 Action 和 Combo，请只保留其中一种"
+			% skill_name
+		)
+		return null
+
+	if action_data != null:
+		return action_data
+
+	if combo_data != null:
+		if combo_data.get_action_count() <= 0:
+			push_warning("SkillSystem：%s 的 Combo 没有配置 Action" % skill_name)
+			return null
+
+		return combo_data.get_action(0)
+
+	return null
+
+
+func _validate_skill_configuration() -> void:
+	_get_skill_first_action(
+		normal_skill_action,
+		normal_skill,
+		"普通技能"
+	)
+
+	_get_skill_first_action(
+		special_skill_action,
+		special_skill,
+		"强化特殊技"
+	)
+
+
+func _submit_skill_request(
+	action_data: CombatActionData,
+	combo_data: CombatComboData
+) -> bool:
+	if combo_executor == null:
+		return false
+
+	var request := CombatActionRequest.new()
+
+	if action_data != null:
+		request.request_type = CombatActionRequest.RequestType.START_ACTION
+		request.action_data = action_data
+	elif combo_data != null:
+		request.request_type = CombatActionRequest.RequestType.START_COMBO
+		request.combo_data = combo_data
+	else:
+		return false
+
+	return combo_executor.submit_request(request)
+
 
 func request_skill() -> bool:
 	if combo_executor == null:
 		return false
 
-	if normal_skill == null:
-		push_warning("SkillSystem：没有配置普通技能")
+	var normal_first_action := _get_skill_first_action(
+		normal_skill_action,
+		normal_skill,
+		"普通技能"
+	)
+
+	if normal_first_action == null:
+		push_warning("SkillSystem：没有正确配置普通技能")
 		return false
 
 	# 默认选择普通技能。
-	var selected_skill := normal_skill
+	var selected_action := normal_skill_action
+	var selected_combo := normal_skill
 
-	# 第一段能量足够时，优先选择强化特殊技。
-	if special_skill != null and special_skill.get_action_count() > 0:
-		var first_action := special_skill.get_action(0)
+	# 第一段资源足够时，优先选择强化特殊技。
+	var special_first_action := _get_skill_first_action(
+		special_skill_action,
+		special_skill,
+		"强化特殊技"
+	)
 
-		if can_pay_action_cost(first_action):
-			selected_skill = special_skill
+	if special_first_action != null and can_pay_action_cost(special_first_action):
+		selected_action = special_skill_action
+		selected_combo = special_skill
 
-	var request := CombatActionRequest.new()
-	request.request_type = CombatActionRequest.RequestType.START_COMBO
-	request.combo_data = selected_skill
-
-	return combo_executor.submit_request(request)
+	return _submit_skill_request(selected_action, selected_combo)
 
 
 func request_ultimate() -> bool:
