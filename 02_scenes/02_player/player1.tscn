@@ -4,8 +4,7 @@
 [ext_resource type="Script" uid="uid://cy2d0guo72f44" path="res://03_scripts/01_combat/executor/combat_action_executor.gd" id="2_bosoa"]
 [ext_resource type="Script" uid="uid://o2ph3ikhg2ei" path="res://03_scripts/01_combat/executor/combat_combo_executor.gd" id="3_6r464"]
 [ext_resource type="Resource" uid="uid://kkfh38m5qw7y" path="res://04_resources/player1_action/sword_combo.tres" id="4_ed1yj"]
-[ext_resource type="Script" uid="uid://ciwrykrdd8api" path="res://03_scripts/01_combat/system/combat_energy.gd" id="5_jxak6"]
-[ext_resource type="Script" uid="uid://drrl5l7ghex4x" path="res://03_scripts/01_combat/system/skill_selector.gd" id="6_3veiq"]
+[ext_resource type="Script" path="res://03_scripts/01_combat/system/skill_system.gd" id="5_jxak6"]
 [ext_resource type="Resource" uid="uid://cblea1uo8n8cu" path="res://04_resources/player1_action/test_normal_skill_combo.tres" id="7_dm8t1"]
 [ext_resource type="Resource" uid="uid://yg2y5iw7jdo" path="res://04_resources/player1_action/test_special_skill_combo.tres" id="8_3u1yq"]
 [ext_resource type="Script" uid="uid://qmwr0q8t5je5" path="res://03_scripts/01_combat/system/defense_controller.gd" id="9_dm8t1"]
@@ -38,11 +37,8 @@ script = ExtResource("2_bosoa")
 script = ExtResource("3_6r464")
 combo_data = ExtResource("4_ed1yj")
 
-[node name="CombatEnergy" type="Node" parent="." unique_id=1097028315]
+[node name="SkillSystem" type="Node" parent="." unique_id=493049690]
 script = ExtResource("5_jxak6")
-
-[node name="SkillSelector" type="Node" parent="." unique_id=493049690]
-script = ExtResource("6_3veiq")
 normal_skill = ExtResource("7_dm8t1")
 special_skill = ExtResource("8_3u1yq")
 
