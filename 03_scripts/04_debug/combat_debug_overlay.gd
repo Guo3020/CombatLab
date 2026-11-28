@@ -142,6 +142,7 @@ func _draw() -> void:
 	_draw_enemy_death_movement_info()
 	_draw_pending_combo_info()
 	_draw_energy()
+	_draw_decibel()
 	_draw_movement_info()
 	_draw_enemy_ai_info()
 	_draw_dash_charges()
@@ -1205,6 +1206,70 @@ func _draw_energy() -> void:
 	)
 
 	# 能量条边框
+	draw_rect(
+		Rect2(bar_position, bar_size),
+		Color(0.8, 0.8, 0.85),
+		false,
+		1.0
+	)
+
+
+# ==================================================
+# 喧响值调试显示
+# ==================================================
+
+func _draw_decibel() -> void:
+	if not show_energy or player == null:
+		return
+
+	var current_decibel: float = float(
+		player.get("debug_decibel_current")
+	)
+
+	var max_decibel: float = float(
+		player.get("debug_decibel_max")
+	)
+
+	if max_decibel <= 0.0:
+		return
+
+	var decibel_ratio := clampf(
+		current_decibel / max_decibel,
+		0.0,
+		1.0
+	)
+
+	var bar_position := Vector2(20.0, 138.0)
+	var bar_size := Vector2(220.0, 12.0)
+
+	draw_string(
+		ThemeDB.fallback_font,
+		Vector2(20.0, 130.0),
+		"Decibel: %.0f / %.0f" % [
+			current_decibel,
+			max_decibel
+		],
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		16,
+		Color.WHITE
+	)
+
+	draw_rect(
+		Rect2(bar_position, bar_size),
+		Color(0.15, 0.15, 0.18, 0.9),
+		true
+	)
+
+	draw_rect(
+		Rect2(
+			bar_position,
+			Vector2(bar_size.x * decibel_ratio, bar_size.y)
+		),
+		Color(0.95, 0.65, 0.18),
+		true
+	)
+
 	draw_rect(
 		Rect2(bar_position, bar_size),
 		Color(0.8, 0.8, 0.85),
