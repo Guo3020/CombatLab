@@ -139,6 +139,7 @@ func _draw() -> void:
 	_draw_hitbox()
 	_draw_executor_info()
 	_draw_player_death_cleanup_info()
+	_draw_enemy_death_movement_info()
 	_draw_pending_combo_info()
 	_draw_energy()
 	_draw_movement_info()
@@ -803,6 +804,40 @@ func _draw_player_death_cleanup_info() -> void:
 		"Bounce: %d / 1 | Settled: %s" % [
 			int(death_movement.get("bounce_count", 0)),
 			str(bool(death_movement.get("settled", false)))
+		],
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		13,
+		Color(0.8, 0.8, 0.8)
+	)
+
+
+func _draw_enemy_death_movement_info() -> void:
+	if enemy == null or not bool(enemy.get("is_dead")):
+		return
+
+	if not enemy.has_method("get_death_movement_debug_data"):
+		return
+
+	var debug_data: Dictionary = enemy.get_death_movement_debug_data()
+	var info_position := Vector2(20.0, size.y - 100.0)
+	var font := ThemeDB.fallback_font
+
+	draw_string(
+		font,
+		info_position,
+		"ENEMY DEATH MOVEMENT: %s" % str(debug_data.get("mode", "NONE")),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		14,
+		Color(0.5, 0.85, 1.0)
+	)
+	draw_string(
+		font,
+		info_position + Vector2(0.0, 18.0),
+		"Bounce: %d / 1 | Settled: %s" % [
+			int(debug_data.get("bounce_count", 0)),
+			str(bool(debug_data.get("settled", false)))
 		],
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
