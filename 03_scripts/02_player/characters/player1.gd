@@ -104,6 +104,7 @@ var dash_input_direction: Vector2 = Vector2.ZERO
 
 var normalattack_input_pending: bool = false
 var skill_input_pending: bool = false
+var ultimate_input_pending: bool = false
 
 
 # ==================================================
@@ -123,8 +124,7 @@ var movement_request_handler: Object:
 
 @onready var combat_action_executor: CombatActionExecutor = $CombatActionExecutor
 @onready var combat_combo_executor: CombatComboExecutor = $CombatComboExecutor
-@onready var combat_energy: CombatEnergy = $CombatEnergy
-@onready var skill_selector: SkillSelector = $SkillSelector
+@onready var skill_system: SkillSystem = $SkillSystem
 @onready var defense_controller: DefenseController = $DefenseController
 
 
@@ -144,6 +144,8 @@ var debug_action_active: bool = false
 
 var debug_energy_current: float = 0.0
 var debug_energy_max: float = 100.0
+var debug_decibel_current: float = 0.0
+var debug_decibel_max: float = 3000.0
 
 
 # ==================================================
@@ -180,10 +182,12 @@ func _ready() -> void:
 		_on_executor_action_finished
 	)
 
-	debug_energy_current = combat_energy.current_energy
-	debug_energy_max = combat_energy.MAX_ENERGY
+	debug_energy_current = skill_system.current_energy
+	debug_energy_max = skill_system.MAX_ENERGY
+	debug_decibel_current = skill_system.current_decibel
+	debug_decibel_max = skill_system.MAX_DECIBEL
 
-	combat_energy.energy_changed.connect(_on_energy_changed)
+	skill_system.resources_changed.connect(_on_resources_changed)
 
 
 # ==================================================
@@ -208,6 +212,7 @@ func _process(delta: float) -> void:
 		dash_input_pending = false
 		normalattack_input_pending = false
 		skill_input_pending = false
+		ultimate_input_pending = false
 
 		_reset_special_dash_input_state()
 		return
@@ -252,6 +257,9 @@ func _process(delta: float) -> void:
 
 	if Input.is_action_just_pressed("skill"):
 		skill_input_pending = true
+
+	if Input.is_action_just_pressed("ultimate"):
+		ultimate_input_pending = true
 
 
 # ==================================================
@@ -567,6 +575,7 @@ func _physics_process(delta: float) -> void:
 	# --------------------------------------------------
 
 	_process_skill_input()
+	_process_ultimate_input()
 
 	# --------------------------------------------------
 	# 动作稳定
@@ -615,8 +624,17 @@ func _process_skill_input() -> void:
 		return
 
 	skill_input_pending = false
+	ultimate_input_pending = false
 
-	skill_selector.request_skill()
+	skill_system.request_skill()
+
+
+func _process_ultimate_input() -> void:
+	if not ultimate_input_pending:
+		return
+
+	ultimate_input_pending = false
+	skill_system.request_ultimate()
 
 
 # ==================================================
@@ -663,6 +681,7 @@ func die(attack_direction: Vector2 = Vector2.ZERO) -> void:
 	dash_input_pending = false
 	normalattack_input_pending = false
 	skill_input_pending = false
+	ultimate_input_pending = false
 
 	dash_input_direction = Vector2.ZERO
 	dash_input_updates_facing = true
@@ -939,12 +958,16 @@ func _on_executor_action_finished(
 	_clear_debug_action()
 
 
-func _on_energy_changed(
+func _on_resources_changed(
 	current_energy: float,
-	max_energy: float
+	max_energy: float,
+	current_decibel: float,
+	max_decibel: float
 ) -> void:
 	debug_energy_current = current_energy
 	debug_energy_max = max_energy
+	debug_decibel_current = current_decibel
+	debug_decibel_max = max_decibel
 
 
 # ==================================================
