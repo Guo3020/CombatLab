@@ -4,7 +4,7 @@ extends PanelContainer
 class_name MovementTrackEditorPanel
 
 const PANEL_WIDTH := 320.0
-const MIN_PANEL_WIDTH := 280.0
+const MIN_PANEL_WIDTH := 140.0
 const MAX_PANEL_WIDTH := 900.0
 const MIN_PANEL_HEIGHT := 300.0
 const MAX_PANEL_HEIGHT := 1000.0
@@ -44,6 +44,8 @@ class CurveGraph extends Control:
 	var value_range := 100.0
 	var selected_point := -1
 	var dragging_point := -1
+	var point_drag_changed := false
+	signal edit_committed
 	var plot_left := 32.0
 	var plot_right := 0.0
 	var plot_top := 12.0
@@ -152,6 +154,9 @@ class CurveGraph extends Control:
 					accept_event()
 			elif button.button_index == MOUSE_BUTTON_LEFT and not button.pressed:
 				dragging_point = -1
+				if point_drag_changed:
+					point_drag_changed = false
+					edit_committed.emit()
 			elif button.button_index == MOUSE_BUTTON_RIGHT and button.pressed:
 				selected_point = _find_nearest_point(button.position)
 				_delete_selected_point()
@@ -172,6 +177,7 @@ class CurveGraph extends Control:
 		if point.x <= 0.005 or point.x >= 0.995:
 			return
 		curve.add_point(point)
+		edit_committed.emit()
 		selected_point = _find_nearest_point(_curve_to_screen(point))
 		queue_redraw()
 
@@ -191,12 +197,14 @@ class CurveGraph extends Control:
 		if old_point.distance_squared_to(point) > 0.000001:
 			curve.set_point_offset(dragging_point, point.x)
 			curve.set_point_value(dragging_point, point.y)
+			point_drag_changed = true
 			queue_redraw()
 
 	func _delete_selected_point() -> void:
 		if curve == null or selected_point <= 0 or selected_point >= curve.get_point_count() - 1:
 			return
 		curve.remove_point(selected_point)
+		edit_committed.emit()
 		selected_point = -1
 		dragging_point = -1
 		queue_redraw()
@@ -205,7 +213,7 @@ class CurveGraph extends Control:
 func _ready() -> void:
 	visible = movement != null
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	custom_minimum_size = Vector2(280.0, 300.0)
+	custom_minimum_size = Vector2(MIN_PANEL_WIDTH, 300.0)
 	size = Vector2(PANEL_WIDTH, 430)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.055, 0.065, 0.085, 0.78)
@@ -289,9 +297,11 @@ func _ready() -> void:
 	collision_row.add_child(collision_option)
 
 	x_graph = CurveGraph.new()
-	content.add_child(_make_graph_section("Track_X（面向方向为正）", x_graph, true))
+	x_graph.edit_committed.connect(_on_curve_edit_committed)
+	content.add_child(_make_graph_section("Track_X", x_graph, true))
 	y_graph = CurveGraph.new()
-	content.add_child(_make_graph_section("Track_Y（向上为正）", y_graph, false))
+	y_graph.edit_committed.connect(_on_curve_edit_committed)
+	content.add_child(_make_graph_section("Track_Y", y_graph, false))
 
 	number_dialog = AcceptDialog.new()
 	number_dialog.title = "输入数值"
@@ -314,7 +324,7 @@ func _ready() -> void:
 func _make_label(value: String) -> Label:
 	var label := Label.new()
 	label.text = value
-	label.custom_minimum_size.x = 68.0
+	label.custom_minimum_size.x = 48.0
 	label.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	return label
 
@@ -344,11 +354,6 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 	range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
 	lower_range_button.pressed.connect(_on_range_button_pressed.bind(graph, range_button, lower_range_button))
 	footer.add_child(lower_range_button)
-	var start_label := Label.new()
-	start_label.text = "双击添加 · 拖动调整 · 右键/删除移除"
-	start_label.add_theme_font_size_override("font_size", 9)
-	start_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	footer.add_child(start_label)
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	footer.add_child(spacer)
@@ -409,6 +414,12 @@ func _refresh() -> void:
 	collision_option.select(int(movement.movement_track_collision_strategy))
 	x_graph.set_curve(movement.movement_track_x, movement.movement_track_duration, x_graph.value_range)
 	y_graph.set_curve(movement.movement_track_y, movement.movement_track_duration, y_graph.value_range)
+
+
+signal edit_committed
+
+func _on_curve_edit_committed() -> void:
+	edit_committed.emit()
 
 
 func _on_duration_changed(value: float) -> void:
