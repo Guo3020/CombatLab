@@ -361,26 +361,25 @@ func _make_graph_section(title_text: String, graph: CurveGraph, _is_x: bool) -> 
 
 
 func set_movement(value: MovementModule) -> void:
-	if movement == value:
-		visible = movement != null
-		_refresh()
-		return
+	if movement != value:
+		if movement != null:
+			if movement.changed.is_connected(_refresh):
+				movement.changed.disconnect(_refresh)
+			for old_curve in [movement.movement_track_x, movement.movement_track_y]:
+				if old_curve != null and old_curve.changed.is_connected(_refresh):
+					old_curve.changed.disconnect(_refresh)
+		movement = value
 
-	if movement != null:
-		if movement.changed.is_connected(_refresh):
-			movement.changed.disconnect(_refresh)
-		for old_curve in [movement.movement_track_x, movement.movement_track_y]:
-			if old_curve != null and old_curve.changed.is_connected(_refresh):
-				old_curve.changed.disconnect(_refresh)
-
-	movement = value
 	visible = movement != null
 	if not is_node_ready():
 		return
-	if movement == null:
-		_refresh()
-		return
+	_connect_movement_signals()
+	_refresh()
 
+
+func _connect_movement_signals() -> void:
+	if movement == null:
+		return
 	# Assign inspector filter names before connecting changed signals.
 	if movement.movement_track_x != null:
 		if movement.movement_track_x.resource_name != "MovementTrack X Curve":
@@ -394,7 +393,6 @@ func set_movement(value: MovementModule) -> void:
 			movement.movement_track_y.changed.connect(_refresh)
 	if not movement.changed.is_connected(_refresh):
 		movement.changed.connect(_refresh)
-	_refresh()
 
 
 func _refresh() -> void:
